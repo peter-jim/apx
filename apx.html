@@ -155,6 +155,25 @@ th{color:var(--mute);font-weight:500;font-size:11px;text-transform:uppercase;let
 .score{text-align:right}
 .score b{display:block;font-size:26px;font-family:ui-monospace,Menlo,monospace;color:var(--up)}
 .score span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+
+/* Partner & Collaborator Logos Marquee */
+.marquee-wrap{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.marquee-head{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--surface2)}
+.marquee-head .eyebrow{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--mute);text-transform:uppercase}
+.marquee-head .count{font-size:11px;color:var(--mute);font-family:ui-monospace,Menlo,monospace}
+.logo-marquee-mask{position:relative;overflow:hidden;padding:16px 0;width:100%;
+ -webkit-mask-image:linear-gradient(to right,transparent,#000 48px,#000 calc(100% - 48px),transparent);
+ mask-image:linear-gradient(to right,transparent,#000 48px,#000 calc(100% - 48px),transparent)}
+.logo-marquee-track{display:flex;align-items:center;gap:44px;width:max-content;animation:marquee-scroll 60s linear infinite;will-change:transform}
+.logo-marquee-mask:hover .logo-marquee-track{animation-play-state:paused}
+@keyframes marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.logo-item{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .18s ease}
+.logo-item:hover{transform:scale(1.08)}
+.logo-item img{display:block;width:auto;max-width:none;object-fit:contain;opacity:.72;filter:grayscale(100%);transition:opacity .2s,filter .2s}
+.logo-item:hover img{opacity:1;filter:grayscale(0%)}
+[data-theme=dark] .logo-item img{filter:brightness(0) invert(.82);opacity:.78}
+[data-theme=dark] .logo-item:hover img{filter:brightness(0) invert(1);opacity:1}
+@media(prefers-reduced-motion:reduce){.logo-marquee-track{animation:none}.logo-marquee-mask{overflow-x:auto}}
 @media(max-width:860px){
  h1{font-size:26px}
  .hgrid,.flow,.g2,.two,.cat,.fg{grid-template-columns:1fr}
@@ -307,6 +326,7 @@ h_title:["Institutional matchmaking for early-stage drug assets, worldwide","全
 h_lead:["Buyers register a mandate. APX screens and scores assets with AI and pushes matches. After a CDA, both sides open materials layer by layer and sign offline. No buy button, institutions only.","买方登记需求，APX 用 AI 评估筛选资产并主动推送匹配；双方签署保密协议后逐层查看资料，线下签约。平台不设购买按钮，只对机构开放。"],
 h_buyer:["I'm a buyer","我是买方"],h_seller:["List an asset","我是卖方"],h_browse:["Browse assets","浏览资产"],
 launch:["Launch vertical: Metabolic & Peptides · first focus target Amylin","首发赛道：代谢与肽类 · 首个重点靶点 Amylin"],
+partner_lbl:["Ecosystem & Institutional Collaborators","学术机构与生态合作伙伴"],partner_inst:["Institutions & Partners","合作机构与生态伙伴"],
 m_h:["Platform activity","平台活动"],m_note:["Illustrative sample data for the prototype.","原型示例数据。"],
 how_h:["How it works","怎么运作"],how_s:["Two tracks converge at match push, then one shared path to a signed deal.","买卖双方两条流程在“匹配推送”汇合，之后走同一条路径到签约。"],
 bt:["Buyer track","买方流程"],st:["Seller track","卖方流程"],
@@ -429,6 +449,43 @@ reqs:[{id:"A-101",type:"cda",status:"signed",d:"2026-09-22"},{id:"A-101",type:"d
 const t=k=>T[k]?T[k][S.lang==='en'?0:1]:k;
 const L=p=>p[S.lang==='en'?0:1];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ---------- partners ---------- */
+const PARTNERS=[
+ {name:"Stanford",file:"stanford.png",h:26},
+ {name:"MIT",file:"mit.png",h:22},
+ {name:"Harvard",file:"harvard.png",h:18},
+ {name:"Princeton",file:"princeton.png",h:18},
+ {name:"Columbia",file:"columbia.png",h:26},
+ {name:"UC Berkeley",file:"uc-berkeley.png",h:18},
+ {name:"Yale",file:"yale.png",h:26},
+ {name:"NYU",file:"nyu.png",h:26},
+ {name:"NUS",file:"nus.png",h:22},
+ {name:"ETH Zürich",file:"eth-zurich.png",h:18},
+ {name:"HKU",file:"hku.png",h:26},
+ {name:"A*STAR",file:"a-star.png",h:18},
+ {name:"Open Targets",file:"open-targets.png",h:20},
+ {name:"Cyberport",file:"cyberport.png",h:22},
+ {name:"HKSTP",file:"hkstp.png",h:20},
+ {name:"CityU HK",file:"cityu-hk.png",h:24},
+ {name:"University of Washington",file:"university-of-washington.png",h:22},
+ {name:"SMU",file:"smu.png",h:20},
+ {name:"VitaDAO",file:"vitadao.png",h:22},
+ {name:"Bio.xyz",file:"bio.png",h:20},
+ {name:"ResearchHub",file:"researchhub.png",h:19},
+ {name:"DeSci World",file:"desci-world.png",h:20},
+ {name:"CancerDAO",file:"cancerdao.png",h:20},
+ {name:"G42",file:"g42.png",h:20},
+ {name:"AI Singapore",file:"ai-singapore.png",h:22},
+ {name:"Genomes.io",file:"genomes-io.png",h:20},
+ {name:"Generation Lab",file:"generation-lab.png",h:20},
+ {name:"Ethereum Foundation",file:"ethereum-foundation.png",h:20}
+];
+function partnerMarquee(){
+ const track=[...PARTNERS,...PARTNERS];
+ const list=track.map((l,i)=>`<div class="logo-item" title="${l.name}"><img src="brand/logos/${l.file}" alt="${i<PARTNERS.length?l.name:''}" style="height:${l.h}px" loading="lazy" decoding="async"/></div>`).join('');
+ return `<div class="marquee-wrap"><div class="marquee-head"><span class="eyebrow">${t('partner_lbl')}</span><span class="count">${PARTNERS.length}+ ${t('partner_inst')}</span></div><div class="logo-marquee-mask"><div class="logo-marquee-track">${list}</div></div></div>`;
+}
+
 /* ---------- data ---------- */
 const A=[
 {id:"A-101",area:"obesity",tg:"amylin",mech:["Long-acting amylin/calcitonin receptor dual agonist (DACRA)","长效胰淀素/降钙素受体双重激动剂（DACRA）"],form:"inj",stage:"p1",ind:["Obesity","肥胖"],rights:"exgc",score:86,date:"2026-09-18",bk:[88,84,82,90],
@@ -586,6 +643,7 @@ function home(){
  <div class="chips"><span class="chip">${ic('shield',14)}${t('tr1t')}</span><span class="chip">${ic('bld',14)}${t('tr2t')}</span><span class="chip">${ic('layers',14)}${t('tr3t')}</span><span class="chip">${ic('globe',14)}${t('tr4t')}</span></div></div>
  <div class="panel"><div class="ph"><span>${t('land_t')}</span><span style="text-transform:none;letter-spacing:0">${t('land_s')}</span></div><div style="padding:10px 12px 6px">${landscape()}</div></div></div>
  <div class="panel" style="margin-top:22px"><div class="tiles t4">${tiles.map(([k,v,d,a])=>`<div class="tile"><span class="tl">${t(k)}</span><div class="row2"><div><div class="tv">${v}</div><div class="td">▲ ${d}</div></div>${spark(a,72,28)}</div></div>`).join('')}</div><div class="pf">${t('m_h')} · ${t('m_note')}</div></div></section>
+ ${partnerMarquee()}
  <section class="blk">${sn('01',t('how_h'))}<p class="sub">${t('how_s')}</p>
  ${lane('bt',['bld','target','scan','bell'],['b1','b2','b3','b4'])}${lane('st',['file','scan','pen','list'],['s1','s2','s3','s4'])}
  <div class="conv"><b>${ic('users',16)}${t('mp')}</b></div>
