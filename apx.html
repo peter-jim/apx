@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APX — Pipeline Exchange</title>
+<style>
+:root{--bg:#f2f4f7;--surface:#fff;--surface2:#f5f7fa;--line:#e1e5ea;--text:#12161c;--mute:#707a8a;--accent:#1e5fe0;--accent-ink:#fff;--accent-soft:#e6eefc;--up:#0a8f5c;--up-bg:#e3f5ec;--warn:#9a6a00;--warn-bg:#fbf1d8;--ok:#0a8f5c;--ok-bg:#e3f5ec;--err:#d0342c;--lock:#f5f7fa;--r:4px}
+[data-theme=dark]{--bg:#0b0e11;--surface:#161a1e;--surface2:#1e2329;--line:#2b3139;--text:#eaecef;--mute:#848e9c;--accent:#4c8dff;--accent-ink:#0b0e11;--accent-soft:#16233d;--up:#2ebd85;--up-bg:#12332a;--warn:#f0b90b;--warn-bg:#33290a;--ok:#2ebd85;--ok-bg:#12332a;--err:#f6465d;--lock:#12161a}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans SC",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+.mono,.num,b.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;line-height:1.25;font-weight:600}
+h1{font-size:34px;letter-spacing:-.02em}h2{font-size:20px}h3{font-size:14px}h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+p{margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:20px;height:48px}
+.logo{font-weight:800;letter-spacing:.12em;color:var(--text);font-size:16px;display:flex;align-items:center;gap:8px}
+.logo i{display:inline-block;width:16px;height:16px;background:var(--accent);clip-path:polygon(0 100%,0 55%,30% 55%,30% 30%,60% 30%,60% 0,100% 0,100% 100%)}
+nav.links{display:flex;gap:0;flex:1;overflow-x:auto;scrollbar-width:none;height:100%}
+nav.links a{color:var(--mute);padding:0 14px;display:flex;align-items:center;white-space:nowrap;font-weight:500;border-bottom:2px solid transparent}
+nav.links a.on,nav.links a:hover{color:var(--text)}
+nav.links a.on{border-color:var(--accent)}
+.tools{display:flex;gap:8px;align-items:center}
+.seg{display:flex;background:var(--surface2);border-radius:var(--r);padding:2px}
+.seg button{border:0;background:transparent;color:var(--mute);padding:3px 9px;cursor:pointer;font:inherit;font-size:12px;border-radius:3px}
+.seg button.on{background:var(--line);color:var(--text)}
+select,input[type=text],input[type=email],input[type=url],textarea{font:inherit;color:var(--text);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;width:100%}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:1px solid var(--accent);border-color:var(--accent)}
+.tools select{width:auto;padding:4px 8px;font-size:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:8px 18px;border-radius:var(--r);font:inherit;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:transparent;color:var(--text);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--mute)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn[disabled]{opacity:.4;cursor:default}
+.btn.danger{background:transparent;border-color:var(--err);color:var(--err)}
+#ticker{border-top:1px solid var(--line);background:var(--bg);overflow:hidden;height:28px;display:flex;align-items:center;font-size:12px}
+#ticker .tk{display:flex;gap:32px;white-space:nowrap;animation:tk 60s linear infinite;padding-left:32px}
+#ticker:hover .tk{animation-play-state:paused}
+#ticker span{color:var(--mute)}#ticker b{font-family:ui-monospace,Menlo,monospace;font-weight:500;color:var(--text);margin-left:6px}#ticker b.up{color:var(--up)}
+@keyframes tk{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){#ticker .tk{animation:none}}
+main{min-height:70vh;padding:20px 0 60px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:3px;background:var(--surface2);color:var(--mute);white-space:nowrap}
+.tag.acc{background:var(--accent-soft);color:var(--accent)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.mute{color:var(--mute)}.sm{font-size:12px}
+.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+section.blk{margin-top:40px}
+section.blk>h2{margin-bottom:4px}section.blk>.sub{color:var(--mute);margin-bottom:14px;max-width:720px}
+.hero{padding:20px 0 0}
+.hgrid{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:stretch}
+.hero p.lead{font-size:15px;color:var(--mute);max-width:640px;margin:14px 0 22px}
+.hero .cta{display:flex;gap:10px;flex-wrap:wrap}
+.hero .btn{padding:11px 24px;font-size:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.panel .ph{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.panel .pr{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.panel .pr:last-of-type{border:0}
+.panel .pr span{color:var(--mute);font-size:12px;max-width:190px}
+.panel .pr b{font-size:24px;font-weight:600;font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+.panel .pr b.up{color:var(--up)}
+.panel .pf{padding:8px 14px;color:var(--mute);font-size:11px;border-top:1px solid var(--line)}
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.steps li{display:flex;gap:10px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:var(--r)}
+.steps li span.n{flex:none;width:20px;height:20px;border-radius:3px;background:var(--line);color:var(--text);font-size:11px;display:grid;place-items:center;font-weight:600;font-family:ui-monospace,Menlo,monospace}
+.merge{text-align:center;margin:10px 0;padding:8px;border:1px solid var(--accent);border-radius:var(--r);color:var(--accent);font-weight:600;background:var(--accent-soft);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.chain{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.chain div{padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);position:relative}
+.chain div:not(:last-child):after{content:"›";position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--mute);z-index:2;font-size:16px}
+footer{border-top:1px solid var(--line);background:var(--surface);padding:22px 0;color:var(--mute);font-size:12px}
+footer .cols{display:flex;gap:30px;flex-wrap:wrap;justify-content:space-between}
+.cat{display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start}
+.filters{position:sticky;top:90px;padding:4px 14px 14px}
+.filters h4{margin:14px 0 6px}
+.filters label,.chk{display:flex;gap:8px;align-items:center;padding:2px 0;cursor:pointer}
+.chk input,.filters input{width:auto;accent-color:var(--accent)}
+.toolbar{display:flex;gap:8px;margin-bottom:10px}
+.toolbar input{flex:1}.toolbar select{width:auto}
+.mkt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mrow{display:grid;grid-template-columns:70px minmax(0,2.6fr) 84px 76px minmax(0,1.3fr) minmax(0,1.2fr) 110px 88px;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.mrow:last-child{border:0}
+.mrow:not(.mh):hover{background:var(--surface2)}
+.mrow.mh{cursor:default;background:var(--surface2);color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px}
+.mrow .ttl{font-weight:600;color:var(--text)}
+.mrow .sub2{color:var(--mute);font-size:12px;margin-top:1px}
+.mrow .sc{display:flex;align-items:center;gap:8px}
+.mrow .sc b{color:var(--up);font-size:15px;min-width:24px}
+.bar-track{height:4px;background:var(--line);border-radius:2px;overflow:hidden;flex:1}
+.bar-fill{height:100%;background:var(--up)}
+.co{color:var(--mute);font-size:11px}
+.pill{display:inline-block;padding:1px 8px;border:1px solid var(--line);border-radius:3px;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+.two{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:0;margin:0}
+.kv dt,.kv dd{padding:8px 0;border-bottom:1px solid var(--line);margin:0}
+.kv dt{color:var(--mute)}
+.layer{margin-top:12px}
+.layer .lh{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.lock{background:var(--lock);border-style:dashed;text-align:center;padding:22px}
+.lock .ico{font-size:20px;opacity:.7}
+.lock ul{list-style:none;padding:0;margin:10px auto;display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.brk{display:grid;gap:10px}
+.brk .row{display:grid;grid-template-columns:90px 1fr 30px;gap:10px;align-items:center}
+.crumb{color:var(--mute);margin-bottom:10px;font-size:12px}
+.formw{max-width:720px;margin:0 auto}
+.prog{display:flex;gap:6px;margin:16px 0}
+.prog div{flex:1;font-size:12px;color:var(--mute);border-top:2px solid var(--line);padding-top:6px}
+.prog div.on{border-color:var(--accent);color:var(--text)}
+.prog div.done{border-color:var(--up);color:var(--up)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fld{display:flex;flex-direction:column;gap:4px}.fld.full{grid-column:1/-1}
+.fld>label,.fld>.lbl{font-weight:500;font-size:12px;color:var(--mute)}
+.fld .req{color:var(--err)}
+.fld.bad input,.fld.bad select,.fld.bad textarea{border-color:var(--err)}
+.emsg{color:var(--err);font-size:12px}
+.opts{display:flex;flex-wrap:wrap;gap:6px 14px}
+.upload{border:1px dashed var(--line);border-radius:var(--r);padding:16px;text-align:center;color:var(--mute);cursor:pointer;background:var(--surface2)}
+.upload.has{color:var(--ok);border-color:var(--ok)}
+.actions{display:flex;justify-content:space-between;margin-top:20px}
+.success{text-align:center;padding:40px 20px}
+.success .ok-i{width:44px;height:44px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;margin:0 auto 14px;font-size:22px}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.dsec{margin-top:24px}.dsec>h3{margin-bottom:8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.list{display:grid;gap:8px}
+.row2{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin:12px 0}
+.pipe div{font-size:11px;color:var(--mute);border-top:3px solid var(--line);padding-top:4px}
+.pipe div.on{border-color:var(--up);color:var(--text)}
+.pipe div.cur{font-weight:700;color:var(--up)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+tr:last-child td{border:0}
+th{color:var(--mute);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:50;padding:20px}
+.modal .card{max-width:420px;width:100%}
+.modal .actions{justify-content:flex-end;gap:8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:var(--r);z-index:60}
+.info{padding:8px 10px;border-radius:var(--r);background:var(--surface2);border-left:2px solid var(--accent);font-size:12px}
+.score{text-align:right}
+.score b{display:block;font-size:26px;font-family:ui-monospace,Menlo,monospace;color:var(--up)}
+.score span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+@media(max-width:860px){
+ h1{font-size:26px}
+ .hgrid,.flow,.g2,.two,.cat,.fg{grid-template-columns:1fr}
+ .g3,.g4,.chain{grid-template-columns:1fr 1fr}
+ .filters{position:static}.chain div:after{display:none}
+ .bar{gap:10px;flex-wrap:wrap;height:auto;padding-top:8px}nav.links{order:3;flex-basis:100%;height:36px}
+ .mrow.mh{display:none}
+ .mrow{grid-template-columns:1fr 1fr;gap:8px 12px}
+ .mrow>div:nth-child(2){grid-column:1/-1;order:-1}
+ .mrow>div[data-l]:before{content:attr(data-l);display:block;color:var(--mute);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+ .kv{grid-template-columns:100px 1fr}
+}
+@media(max-width:520px){.g3,.g4,.chain{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}.pipe div{font-size:10px}.logo span{display:none}.tools{margin-left:auto}}
+
+.ic{flex:none;vertical-align:middle}
+:root{--tc-amylin:#2a78d6;--tc-multi:#1baf7a;--tc-glp1:#eb6834;--tc-mstn:#4a3aa7}
+[data-theme=dark]{--tc-amylin:#3987e5;--tc-multi:#199e70;--tc-glp1:#d95926;--tc-mstn:#9085e9}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.tile{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .tl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);display:flex;justify-content:space-between;align-items:center}
+.tile .tv{font-size:30px;font-weight:600;font-family:ui-monospace,Menlo,monospace;letter-spacing:-.02em}
+.tile .td{font-size:12px;color:var(--up);font-family:ui-monospace,Menlo,monospace}
+.tile .row2{align-items:flex-end;flex-wrap:nowrap}
+.spark .sl{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linejoin:round}
+.spark .sa{fill:var(--accent);opacity:.12}.spark .sd{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.ring .rt{fill:none;stroke:var(--line)}.ring .rf{fill:none;stroke:var(--up)}.ring .rv{fill:var(--text);font-family:ui-monospace,Menlo,monospace;font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.chip{display:inline-flex;gap:6px;align-items:center;padding:5px 10px;border:1px solid var(--line);border-radius:99px;color:var(--mute);font-size:12px;background:var(--surface)}
+.chip .ic{color:var(--accent)}
+.lane{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-bottom:8px}
+.lname{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600}
+.nodes{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.node{position:relative;padding-right:14px;min-width:0}
+.node:not(:last-child):after{content:"";position:absolute;top:19px;left:46px;right:6px;height:1px;background:var(--line)}
+.nic{width:38px;height:38px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;position:relative;z-index:1}
+.node .nn{font-size:10px;color:var(--mute);margin-top:8px}
+.node .nt{font-size:12px;line-height:1.35;margin-top:2px}
+.conv{display:flex;align-items:center;justify-content:center;gap:10px;margin:2px 0 8px}
+.conv:before,.conv:after{content:"";flex:1;height:1px;background:var(--accent);opacity:.5}
+.conv b{display:inline-flex;gap:8px;align-items:center;padding:8px 16px;border:1px solid var(--accent);border-radius:99px;color:var(--accent);background:var(--accent-soft);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.lane.chainl{grid-template-columns:1fr}
+.feat{display:flex;flex-direction:column;gap:10px}
+.feat .fi{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+.layp{position:relative;padding:16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.layp .lv{height:3px;background:var(--line);border-radius:2px;margin-top:auto}.layp .lv i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.layp.o1 .lv i{width:33%}.layp.o2 .lv i{width:66%}.layp.o3 .lv i{width:100%}
+.layp .lb{display:flex;justify-content:space-between;align-items:center;color:var(--accent)}
+.layp .lb span{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--mute)}
+.snap{display:grid;grid-template-columns:150px 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.snap>div{background:var(--surface);padding:12px 14px;min-width:0}
+.snap .big{font-size:36px;font-weight:600;font-family:ui-monospace,Menlo,monospace;line-height:1}
+.stk{display:flex;gap:2px;height:10px;margin:10px 0 8px}.stk i{display:block;border-radius:2px;min-width:4px}
+.leg{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:12px;color:var(--mute)}.leg b{color:var(--text);font-family:ui-monospace,Menlo,monospace;font-weight:500;margin-left:2px}
+.hb{display:grid;grid-template-columns:76px 1fr 22px;gap:8px;align-items:center;font-size:12px;margin-top:6px}
+.hb div.t{height:6px;background:var(--surface2);border-radius:2px}.hb div.t i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.dots{display:inline-flex;gap:3px;margin-right:6px;vertical-align:middle}.dots i{width:14px;height:4px;background:var(--line);border-radius:2px}.dots i.on{background:var(--accent)}
+.mrow .chipt{display:inline-flex;align-items:center;font-size:12px;color:var(--mute);margin-top:2px}
+.tl{display:grid;grid-template-columns:repeat(5,1fr);margin:16px 0 6px}
+.tl div{position:relative;font-size:11px;color:var(--mute);padding-top:16px;text-align:left}
+.tl div:before{content:"";position:absolute;top:4px;left:0;right:0;height:2px;background:var(--line)}
+.tl div:after{content:"";position:absolute;top:0;left:0;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--line)}
+.tl div.on:before{background:var(--accent)}.tl div.on:after{background:var(--accent);border-color:var(--accent)}
+.tl div.cur{color:var(--text);font-weight:600}.tl div.cur:after{box-shadow:0 0 0 4px var(--accent-soft)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin:14px 0}
+.facts div{background:var(--surface);padding:10px 12px}.facts span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}.facts b{font-weight:600}
+.ins{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ins .card{display:flex;gap:12px;padding:14px}.ins .card .fi{flex:none;width:34px;height:34px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.ins h4{margin-bottom:4px}
+.skel{display:grid;gap:8px;max-width:340px;margin:0 auto 14px;opacity:.6}.skel i{display:block;height:8px;border-radius:2px;background:var(--line)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.kpis>div{background:var(--surface);padding:14px 16px;display:flex;gap:12px;align-items:center}
+.kpis .ki{width:36px;height:36px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.kpis b{display:block;font-size:24px;font-family:ui-monospace,Menlo,monospace;line-height:1.1}.kpis span{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.pipe{gap:0}
+.pipe div{border-top:2px solid var(--line);position:relative;padding-top:14px}
+.pipe div:before{content:"";position:absolute;top:-6px;left:0;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--line)}
+.pipe div.on:before{background:var(--up);border-color:var(--up)}
+.pipe div.cur:before{box-shadow:0 0 0 4px var(--up-bg)}
+@media(max-width:860px){.lane{grid-template-columns:1fr}.nodes{grid-template-columns:1fr 1fr;gap:14px 0}.node:after{display:none}.layers,.ins{grid-template-columns:1fr}.snap{grid-template-columns:1fr 1fr}.snap>div:first-child{grid-column:1/-1}.kpis{grid-template-columns:1fr 1fr}.facts{grid-template-columns:1fr 1fr}}
+.demo{background:var(--accent-soft);color:var(--accent);font-size:12px;border-top:1px solid var(--line)}
+.demo .wrap{display:flex;gap:12px;justify-content:space-between;align-items:center;padding-top:5px;padding-bottom:5px}
+.demo button{background:none;border:1px solid currentColor;color:inherit;border-radius:3px;font:inherit;font-size:11px;padding:1px 8px;cursor:pointer}
+.qm{display:inline-grid;place-items:center;width:14px;height:14px;border-radius:50%;background:var(--surface2);border:1px solid var(--line);color:var(--mute);font-size:9px;margin-left:5px;cursor:help;text-decoration:none;font-style:normal;vertical-align:middle;font-weight:600}
+.rolel{font-size:11px;color:var(--mute)}
+.star{background:none;border:0;color:var(--mute);cursor:pointer;font-size:16px;padding:0;line-height:1}.star.on{color:#f0b90b}.star:hover{color:#f0b90b}
+.fchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.fchips button{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:99px;padding:2px 10px;font:inherit;font-size:12px;cursor:pointer}
+.fchips button:hover{border-color:var(--err);color:var(--err)}
+.cta-band{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:12px;border-left:2px solid var(--accent)}
+.hint{font-size:11px;color:var(--mute)}
+.nba{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
+.nba>div{display:flex;gap:10px;align-items:center;color:var(--text)}.nba .ic{color:var(--accent)}
+.nextb{border-color:var(--accent);background:var(--accent-soft);margin-bottom:12px}
+.nextb h4{color:var(--accent);margin-bottom:6px}
+.files{display:grid;gap:6px;margin:10px 0;text-align:left}
+.files div{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:var(--r);gap:8px}
+.unl{border-color:var(--ok);text-align:left}
+.prog div[data-goto]:hover{color:var(--accent)}
+.nxl{font-size:12px;color:var(--mute);margin-top:8px;display:flex;gap:6px;align-items:center}.nxl .ic{color:var(--accent)}
+.t4{grid-template-columns:repeat(4,1fr)}
+.sn{font-family:ui-monospace,Menlo,monospace;color:var(--accent);font-size:13px;margin-right:10px;font-weight:500}
+.land{width:100%;height:auto;display:block}
+.land .lb0{fill:var(--surface2);opacity:.55}.land .lb1{fill:transparent}
+.land .lg{stroke:var(--line);stroke-dasharray:2 4}
+.land .lt{fill:var(--mute);font-size:11px}.land .lt2{fill:var(--text);font-size:12px}
+.land .bt{fill:#fff;font-size:11px;font-weight:700;font-family:ui-monospace,Menlo,monospace;pointer-events:none}
+.bub circle{transform-box:fill-box;transform-origin:center;transition:transform .15s;stroke:var(--surface);stroke-width:2}
+.bub:hover circle{transform:scale(1.15)}
+.funw{overflow-x:auto;padding:4px 0}.fun{min-width:640px;width:100%;height:auto;display:block}
+.fun .fc{fill:var(--accent)}.fun .fconn{fill:var(--accent);opacity:.12}
+.fun .fv{fill:var(--text);font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600}
+.fun .fl{fill:var(--text);font-size:11px}.fun .fp{fill:var(--mute);font-size:10px;font-family:ui-monospace,Menlo,monospace}
+.radar{display:block;margin:0 auto}
+.radar .rg{fill:none;stroke:var(--line)}.radar .ra{stroke:var(--line)}
+.radar .rp{fill:var(--accent);fill-opacity:.22;stroke:var(--accent);stroke-width:2}
+.radar .rv2{fill:none;stroke:var(--mute);stroke-dasharray:4 3}
+.radar .rd{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.radar text{fill:var(--mute);font-size:11px}.radar text.rn{fill:var(--text);font-family:ui-monospace,Menlo,monospace;font-weight:600}
+.big-n{font-size:44px;font-weight:600;font-family:ui-monospace,Menlo,monospace;line-height:1;color:var(--up)}
+.delta{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--up)}
+.peer{width:100%;height:auto}.peer text{fill:var(--mute);font-size:10px;font-family:ui-monospace,Menlo,monospace}
+.trustgrid{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:center;margin-bottom:14px}
+.trustgrid>svg{width:100%;height:auto;display:block}
+.trr{height:100px;display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line)}.trr:last-child{border:0}
+.trr h3{display:flex;gap:8px;align-items:center}.trr .ic{color:var(--accent)}
+.iso .top{fill:var(--accent)}.iso .sd{fill:var(--accent)}.iso .shade{fill:#000;opacity:.28}
+.iso .glyph{fill:none;stroke:var(--bg);stroke-width:2;stroke-linecap:round}
+.donutw{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.donut .dn{fill:var(--text);font-family:ui-monospace,Menlo,monospace;font-weight:600;font-size:22px}
+.lgd div{display:flex;gap:8px;align-items:center;margin:4px 0}
+.hm{display:flex;gap:6px;margin-top:10px}.hm div{flex:1;text-align:center}.hm i{display:block;height:18px;border-radius:3px;background:var(--accent)}.hm span{display:block;font-size:10px;color:var(--mute);margin-top:3px}
+@media(max-width:860px){.trustgrid{grid-template-columns:1fr}.t4{grid-template-columns:1fr 1fr}.trr{height:auto;padding:12px 0}}
+.gauge{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.gauge i{height:8px;border-radius:2px;background:var(--line)}.gauge i.lo{background:var(--accent-soft)}.gauge i.on{background:var(--accent)}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap bar" id="bar"></div><div id="ticker"></div><div id="demo" class="demo"></div></header>
+<main><div class="wrap" id="app"></div></main>
+<footer><div class="wrap" id="foot"></div></footer>
+<div id="overlay"></div>
+<script>
+/* ---------- i18n ---------- */
+const T={
+nav_home:["Home","首页"],nav_assets:["Assets","资产目录"],nav_buyer:["For buyers","买方入驻"],nav_seller:["For sellers","卖方提交"],nav_dash:["Dashboard","我的后台"],
+role:["Demo role","演示身份"],r_guest:["Guest","访客"],r_buyer:["Buyer","买方"],r_seller:["Seller","卖方"],theme:["Theme","主题"],
+h_title:["Institutional matchmaking for early-stage drug assets, worldwide","全球早期药物资产的机构级撮合平台"],
+h_lead:["Buyers register a mandate. APX screens and scores assets with AI and pushes matches. After a CDA, both sides open materials layer by layer and sign offline. No buy button, institutions only.","买方登记需求，APX 用 AI 评估筛选资产并主动推送匹配；双方签署保密协议后逐层查看资料，线下签约。平台不设购买按钮，只对机构开放。"],
+h_buyer:["I'm a buyer","我是买方"],h_seller:["List an asset","我是卖方"],h_browse:["Browse assets","浏览资产"],
+launch:["Launch vertical: Metabolic & Peptides · first focus target Amylin","首发赛道：代谢与肽类 · 首个重点靶点 Amylin"],
+m_h:["Platform activity","平台活动"],m_note:["Illustrative sample data for the prototype.","原型示例数据。"],
+how_h:["How it works","怎么运作"],how_s:["Two tracks converge at match push, then one shared path to a signed deal.","买卖双方两条流程在“匹配推送”汇合，之后走同一条路径到签约。"],
+bt:["Buyer track","买方流程"],st:["Seller track","卖方流程"],
+b1:["Register institution & KYB","机构注册与 KYB 认证"],b2:["Register mandate (target, stage, budget)","登记需求（靶点、阶段、预算）"],b3:["AI screens & scores assets","AI 评估并筛选资产"],b4:["Receive match push","收到匹配推送"],
+s1:["Submit asset & ownership info","提交资产与权属信息"],s2:["AI pre-screening & scoring","AI 初筛与评分"],s3:["Sign listing mandate","签署委托协议"],s4:["Listed as anonymous teaser","以匿名 teaser 上架"],
+mp:["Match push","匹配推送"],c1:["CDA","保密协议 CDA"],c2:["Data room","数据室"],c3:["Letter of intent","意向书"],c4:["Offline signing","线下签约"],
+sp_h:["Launch vertical: Amylin","首发赛道：Amylin"],sp_s:["Why the window is open now","为什么现在是窗口期"],
+w1t:["Big pharma has already in-licensed from Europe","大药企已从欧洲引进"],w1d:["Multiple large pharmas have paid for amylin-class assets developed in Europe, validating the mechanism commercially.","多家大药企已为欧洲开发的胰淀素类资产付费，机制的商业价值已被验证。"],
+w2t:["Supply is still thin","供给仍然稀缺"],w2d:["Few amylin programs are visible to global buyers today; early sellers face little direct competition for attention.","目前全球买方能看到的 Amylin 项目很少，早期卖方几乎没有直接的关注度竞争。"],
+w3t:["Combines with GLP-1 multi-target","可与 GLP-1 多靶点组合"],w3d:["Amylin pairs with GLP-1/GIP/GCG agonists for greater weight loss and better tolerability, opening combination and co-formulation deals.","Amylin 可与 GLP-1/GIP/GCG 组合，减重更深、耐受更好，带来联用与复方授权机会。"],
+tr_h:["Built for institutions","为机构而建"],tr_s:["Trust controls at every layer.","每一层都有信任控制。"],
+tr1t:["Institutions only","仅限机构"],tr1d:["No individual investors, no retail access.","不向个人投资者开放，无零售入口。"],
+tr2t:["KYB verification","KYB 认证"],tr2d:["Corporate email, entity check and sanctions screening before access.","公司邮箱、主体核验与制裁名单筛查后方可访问。"],
+tr3t:["Three-tier visibility","三层可见性"],tr3d:["Teaser → company & full materials after CDA → data room per person.","Teaser → 签 CDA 后公司与完整材料 → 数据室逐人授权。"],
+tr4t:["Cross-border data compliance","跨境数据合规审核"],tr4d:["Transfers of human genetic and clinical data are reviewed before any file opens.","涉及人类遗传与临床数据的跨境传输，开放前须经合规审核。"],
+f_contact:["Contact","联系方式"],f_priv:["Privacy: submitted data is used only for verification and matching, and never shared before CDA.","隐私说明：所提交信息仅用于认证与匹配，签署 CDA 前不对外披露。"],f_ind:["This platform is not open to individual investors.","本平台不向个人投资者开放。"],
+/* catalog */
+as_h:["Asset catalog","资产目录"],as_s:["Layer 1 public teasers. Company names unlock after CDA.","第一层公开 teaser，公司名签署 CDA 后可见。"],
+search:["Search target, mechanism, indication…","搜索靶点、机制、适应症…"],sort:["Sort","排序"],so_new:["Newest","最新"],so_score:["APX score","评分"],so_stage:["Stage","阶段"],
+fl_area:["Therapeutic area","治疗领域"],fl_target:["Target","靶点"],fl_stage:["Stage","阶段"],fl_form:["Modality","剂型"],fl_rights:["Territory rights","区域权益"],
+clear:["Clear filters","清除筛选"],found:["assets","个资产"],none:["No assets match the filters.","没有符合筛选条件的资产。"],
+co:["Biotech company · name visible after CDA","Biotech 公司 · 签署 CDA 后可见"],
+a_target:["Target","靶点"],a_mech:["Mechanism","机制"],a_form:["Modality","剂型"],a_stage:["Stage","阶段"],a_ind:["Indication","适应症"],a_rights:["Rights","区域权益"],a_date:["Listed","上架日期"],score:["APX score","APX 评分"],
+ar_obesity:["Obesity","肥胖"],ar_t2d:["Type 2 diabetes","2 型糖尿病"],ar_mash:["MASH","MASH"],ar_muscle:["Muscle preservation","保肌肉"],
+tg_amylin:["Amylin","Amylin"],tg_multi:["GLP-1/GIP/GCG","GLP-1/GIP/GCG"],tg_glp1:["GLP-1R small molecule","GLP-1R 小分子"],tg_mstn:["Myostatin/ActRII","肌生成抑制素/ActRII"],
+st_pre:["Preclinical","临床前"],st_p1:["Phase I","I 期"],st_p2:["Phase II","II 期"],
+fm_inj:["Injectable","注射"],fm_oral:["Oral","口服"],
+rt_global:["Global","全球"],rt_exgc:["Global ex-US","全球（不含美国）"],rt_naeu:["US & EU","美国与欧洲"],
+/* detail */
+back:["← Back to assets","← 返回资产目录"],notfound:["Asset not found.","未找到该资产。"],
+L1:["Layer 1 · Public teaser","第一层 · 公开 teaser"],L2:["Layer 2 · After CDA","第二层 · 签署 CDA 后"],L3:["Layer 3 · Data room","第三层 · 数据室"],
+d_logic:["Target rationale","靶点逻辑"],d_data:["Existing data","已有数据类型"],d_comp:["Competitive position","竞品位置"],d_diff:["Differentiation","差异化点"],
+d_brk:["APX score breakdown","APX 评分拆解"],sc_sci:["Science","科学"],sc_dat:["Data","数据"],sc_cmp:["Competition","竞品"],sc_dea:["Dealability","可交易性"],
+lock2:["Sign a CDA to view company name and full materials","签署 CDA 后查看公司名与完整材料"],lock2s:["Includes company identity, full deck, asset history and deal terms sought.","含公司身份、完整介绍材料、研发历史与期望交易条款。"],
+req_cda:["Request CDA","Request CDA"],
+lock3:["Data room opens after CDA and APX approval","数据室在 CDA 与 APX 批准后开放"],
+dr1:["Raw data","原始数据"],dr2:["Patents","专利"],dr3:["CMC","CMC"],
+lock3s:["Access is granted per person, every file is watermarked, and all access is logged.","逐人授权，所有文件带水印，全部访问有日志。"],
+req_dr:["Request data room access","Request data room access"],
+sent:["Request sent. APX will contact you within 2 business days.","请求已发送，APX 将在 2 个工作日内联系。"],
+m_login_t:["Buyer registration required","需要先注册买方"],m_login_d:["Requests are available to verified institutional buyers. Register as a buyer, or switch to the Buyer role in the top bar to preview.","仅认证机构买方可发起请求。请先注册买方，或用右上角身份切换预览买方视角。"],
+m_reg:["Register as buyer","去注册买方"],m_cancel:["Close","关闭"],
+s_role_note:["Sellers cannot request access to assets.","卖方身份不能申请访问资产。"],
+/* forms */
+prog_b:[["Institution","Person","Mandate","Confirm"],["机构信息","个人信息","需求","确认"]],
+prog_s:[["Institution","Asset","Ownership","Confirm"],["机构信息","资产信息","权属信息","确认"]],
+by_h:["Buyer registration","买方注册"],by_s:["Institutions only. Verification takes about 3 business days.","仅限机构，认证约需 3 个工作日。"],
+sl_h:["Submit an asset","卖方提交资产"],sl_s:["Submitted assets enter AI pre-screening. Nothing is public until you sign a mandate.","提交后进入 AI 初筛；签署委托前不会对外公开。"],
+next:["Next","下一步"],prev:["Back","上一步"],submit:["Submit","提交"],
+required:["This field is required","此项为必填"],e_email:["Enter a valid email","请输入有效邮箱"],e_pers:["Use a corporate email, not gmail, qq, 163 or other personal mail","请使用公司邮箱，不接受 gmail、qq、163 等个人邮箱"],e_url:["Enter a valid URL","请输入有效网址"],e_uscc:["Must be 18 characters","须为 18 位"],e_confirm:["Please tick to confirm","请勾选确认"],e_multi:["Select at least one","至少选择一项"],
+f_org:["Institution name","机构名称"],f_country:["Country / region","国家/地区"],f_type:["Institution type","机构类型"],f_site:["Website","官网"],
+o_big:["Big pharma","大药企"],o_mid:["Mid-size biotech","中型 biotech"],o_fund:["Fund","基金"],o_other:["Other","其他"],
+f_name:["Full name","姓名"],f_jt:["Job title","职务"],f_email:["Corporate email","公司邮箱"],f_li:["LinkedIn URL","领英链接"],
+f_areas:["Therapeutic areas","治疗领域"],f_mtarget:["Targets of interest","关注靶点"],f_stages:["Stages","阶段"],f_forms:["Modality","剂型"],f_mrights:["Territory rights sought","区域权益"],f_budget:["Upfront budget (USD)","首付预算区间（美元）"],f_excl:["Exclusions","排除项"],
+o_b1:["< $10M","< 1000 万"],o_b2:["$10M – $50M","1000 万 – 5000 万"],o_b3:["$50M – $100M","5000 万 – 1 亿"],o_b4:["> $100M","> 1 亿"],
+c_buyer:["I confirm I register on behalf of my institution and consent to sanctions-list screening.","确认代表机构注册，并同意制裁名单筛查。"],
+b_done_t:["Verification in progress","认证审核中"],b_done_d:["Expected within 3 business days. We will email your corporate address.","预计 3 个工作日内完成，结果将发送至你的公司邮箱。"],
+f_company:["Company name (legal)","公司名称（法定）"],f_uscc:["Company registration no.","公司注册号"],f_contact_p:["Contact person","联系人"],
+f_atarget:["Target","靶点"],f_amech:["Mechanism","机制"],f_aform:["Modality","剂型"],f_astage:["Stage","阶段"],f_aind:["Indication","适应症"],f_adata:["Existing data","已有数据"],f_arights:["Territory to license","希望授权的区域"],
+o_vitro:["In vitro","体外"],o_animal:["Animal","动物"],o_monkey:["Monkey","猴"],o_human:["Human","人体"],
+f_pat:["Patent application no.","专利申请号"],f_holder:["Patent holder","专利持有人"],f_enc:["Prior license or pledge?","是否有在先许可或质押"],o_no:["No","无"],o_yes:["Yes","有"],
+f_upl:["University assets: technology-transfer authorization","高校资产：技术转移授权"],upl_t:["Click to attach a file (demo only, nothing is uploaded)","点击选择文件（仅示意，不会上传）"],upl_ok:["tech-transfer-authorization.pdf attached (demo)","已附加 tech-transfer-authorization.pdf（示意）"],
+c_seller:["I confirm I am authorized to dispose of this asset.","确认有权处置该资产。"],
+s_done_t:["Submitted to AI pre-screening","已进入 AI 初筛"],s_done_d:["Feedback within 2–3 business days.","2–3 个工作日内反馈。"],
+again:["Start over","重新填写"],
+/* dashboards */
+gate_t:["This page is for verified members","该页面仅对认证会员开放"],gate_b:["Use the Role switch in the top bar, or preview directly:","请用右上角身份切换，或直接预览："],
+bd_h:["Buyer dashboard","买方后台"],verified:["Verified","已认证"],
+bd_m:["My mandates","我的需求"],edit:["Edit","编辑"],save:["Save","保存"],cancel:["Cancel","取消"],
+mand:["Mandate","需求"],mm_budget:["Upfront budget","首付预算"],mm_excl:["Exclusions","排除项"],
+bd_p:["Match push","匹配推送"],bd_ps:["Ranked by fit to your mandates.","按与你需求的匹配度排序。"],fit:["Fit","匹配度"],why:["Why matched","匹配理由"],view:["View teaser","查看 teaser"],
+bd_r:["My requests","我的请求"],rq_cda:["CDA","CDA"],rq_dr:["Data room","数据室"],rs_pending:["Pending","待处理"],rs_signed:["Signed","已签署"],rs_opened:["Opened","已开通"],asset:["Asset","资产"],type:["Type","类型"],status:["Status","状态"],date:["Date","日期"],
+sd_h:["Seller dashboard","卖方后台"],sd_a:["My assets","我的资产"],
+p1:["Submitted","已提交"],p2:["AI screening","AI 初筛"],p3:["Mandate signed","已签委托"],p4:["Listed","已上架"],p5:["Buyer requests","有买方请求"],
+fb:["Screening feedback","初筛反馈"],fb_open:["Show feedback","查看反馈"],fb_close:["Hide feedback","收起反馈"],sugg:["Suggestions","改进建议"],fb_wait:["Screening in progress. Feedback will appear here.","初筛进行中，反馈将显示在此。"],
+sd_i:["Buyer interest","买方兴趣"],sd_is:["Before CDA only buyer type and region are shown. Names appear after CDA.","签署 CDA 前仅显示买方类型与地区，签署后显示机构名。"],pre_cda:["Before CDA","CDA 前"],post_cda:["CDA signed","已签 CDA"],no_int:["No buyer interest yet.","暂无买方兴趣。"],
+sd_d:["Data room access","数据室权限"],buyer:["Buyer","买方"],granted:["Granted","授权日期"],revoke:["Revoke","撤回"],revoked:["Revoked","已撤回"],none_dr:["No active grants.","暂无授权。"],
+/* wider */
+tk1:["ASSETS SCREENED YTD","年内已筛选资产"],tk2:["VERIFIED INSTITUTIONS","已认证机构"],tk3:["ACTIVE MANDATES","活跃需求"],tk4:["CDAs SIGNED","已签 CDA"],hm1:["Assets screened (YTD)","年内已筛选资产"],hm2:["Verified institutions","已认证机构"],hm3:["Active mandates","活跃需求"],hm4:["CDAs signed","已签 CDA"],
+ly1:["Anonymous teaser, open to verified buyers","匿名 teaser，认证买方可见"],ly2:["Company identity and full materials after CDA","签 CDA 后开放公司身份与完整材料"],ly3:["Data room, granted per person and watermarked","数据室，逐人授权并带水印"],
+ph:["Phase III","III 期"],filing:["Filing","申报"],snap_t:["Catalog snapshot","目录概览"],by_target:["By target","按靶点"],by_stage:["By stage","按阶段"],
+k_m:["Mandates","需求"],k_new:["New matches","新匹配"],k_open:["Open requests","待处理请求"],k_dr:["Data rooms opened","已开通数据室"],
+k_a:["Assets","资产"],k_l:["Listed","已上架"],k_i:["Buyer interest","买方兴趣"],k_g:["Active grants","有效授权"],
+int_type:["Interest by buyer type","按买方类型的兴趣"],facts:["Key facts","关键信息"],demo_b:["Prototype demo: use “Demo role” (top right) to preview Guest, Buyer and Seller views. All data is sample data.","原型演示：用右上角“演示身份”切换访客、买方、卖方视角。所有数据均为示例。"],demo_x:["Got it","知道了"],
+g_cda:["Confidentiality Disclosure Agreement. Signed before company identity and full materials are shared.","保密协议。签署后才会披露公司身份与完整材料。"],g_kyb:["Know Your Business: verification of the institution you represent.","机构认证：核验你所代表的机构身份。"],g_mandate:["Your buying criteria (target, stage, budget). APX uses it to push matches.","你的采购需求（靶点、阶段、预算），APX 据此推送匹配。"],g_teaser:["Anonymous one-page summary without the company name.","不含公司名的匿名一页摘要。"],
+cta_dash:["Go to your dashboard","进入我的后台"],cta_more:["List another asset","再提交一个资产"],
+m_cta_t:["Can't find the right asset?","没找到合适的资产？"],m_cta_b:["Register a mandate and APX will push matching assets to you as they are listed.","登记你的需求，新资产上架时 APX 会主动推送匹配。"],m_cta_r:["Register a mandate","登记需求"],m_cta_e:["Edit my mandates","编辑我的需求"],
+watch:["Watch","关注"],watching:["Watching","已关注"],wl:["Watchlist","关注列表"],wl_empty:["Star assets in the catalog to track them here.","在目录中点星标关注资产，会显示在这里。"],
+ap_h:["Your access path","你的访问路径"],ap1:["Request CDA","申请 CDA"],ap2:["APX review (≤2 business days)","APX 审核（≤2 个工作日）"],ap3:["CDA signed","CDA 已签署"],ap4:["Company & materials","公司与完整材料"],ap5:["Data room","数据室"],
+nx_h:["Your next step","你的下一步"],nx0:["Request a CDA to unlock the company name and full materials.","申请 CDA，解锁公司名与完整材料。"],nx1:["CDA requested. APX will contact you within 2 business days.","已申请 CDA，APX 将在 2 个工作日内联系你。"],nx2:["CDA signed. Request data room access to see raw data, patents and CMC.","CDA 已签署。可申请数据室，查看原始数据、专利与 CMC。"],nx3:["Data room requested. APX will review and open access per person.","已申请数据室，APX 审核后将逐人开通。"],nx4:["Data room open. Files are watermarked and access is logged.","数据室已开通。文件带水印，访问有日志。"],
+need_cda:["Sign a CDA first. The data room opens after the CDA.","请先签署 CDA，数据室在 CDA 之后开放。"],
+u2:["Layer 2 unlocked","第二层已解锁"],u2_co:["Company","公司"],u2_hq:["Headquarters","总部"],u2_f:["Materials","材料"],u2_f1:["Full asset deck","完整资产介绍"],u2_f2:["Development history","研发历史"],u2_f3:["Deal terms sought","期望交易条款"],u2_c:["Your APX deal lead will introduce you to the company contact.","APX 交易负责人将为你引荐公司联系人。"],
+u3:["Layer 3 · Data room open","第三层 · 数据室已开通"],u3s:["Watermarked with your name. Every view is logged.","文件带你的姓名水印，每次查看均有记录。"],view_f:["View","查看"],
+nb_b:["{n} new matches with fit ≥ 85%. Review them and request a CDA.","{n} 个匹配度 ≥ 85% 的新匹配，去查看并申请 CDA。"],nb_b_go:["Review matches","查看匹配"],
+nb_s:["{n} buyer interests across your listed assets. See who has signed a CDA.","你已上架的资产共有 {n} 条买方兴趣，查看谁已签署 CDA。"],nb_s_go:["View interest","查看兴趣"],
+sn1:["AI pre-screening starts within 1 business day.","1 个工作日内开始 AI 初筛。"],sn2:["AI screening in progress. Feedback in 2–3 business days.","AI 初筛进行中，2–3 个工作日内反馈。"],sn3:["Mandate signed. APX is preparing your teaser for listing.","委托已签署，APX 正在准备上架 teaser。"],sn4:["Listed. Matches are being pushed to buyers.","已上架，正在向买方推送匹配。"],sn5:["Buyer requests received. Review interest below.","已收到买方请求，见下方买方兴趣。"],
+nx_col:["Next step","下一步"],nxp:["APX will contact you within 2 business days","APX 将在 2 个工作日内联系你"],nxs:["Request data room access →","申请数据室 →"],nxo:["Open materials →","查看资料 →"],nxc:["View asset →","查看资产 →"],
+sdesc_b0:["Who you represent","你代表的机构"],sdesc_b1:["Who you are (corporate email required)","你是谁（需公司邮箱）"],sdesc_b2:["What you want to buy. This drives your match push.","你想买什么，决定匹配推送"],sdesc_b3:["Confirm and submit","确认并提交"],
+sdesc_s0:["Who is listing","谁在提交"],sdesc_s1:["What the asset is","资产是什么"],sdesc_s2:["Who owns it","权属情况"],sdesc_s3:["Confirm and submit","确认并提交"],
+step:["Step","步骤"],est:["about 3 minutes","约 3 分钟"],
+hint_email:["Corporate email only. gmail, qq, 163 and other personal mail are not accepted.","仅限公司邮箱，不接受 gmail、qq、163 等个人邮箱。"],hint_li:["Optional. Speeds up verification.","选填，可加快认证。"],hint_site:["Used to verify your institution.","用于核验机构身份。"],hint_uscc:["Used only for entity verification.","仅用于主体核验。"],hint_mtarget:["e.g. Amylin, GLP-1/GIP/GCG","例如 Amylin、GLP-1/GIP/GCG"],hint_areas:["Select all that apply.","可多选。"],hint_budget:["Used only for match ranking. Never shown to sellers.","仅用于匹配排序，不会展示给卖方。"],hint_excl:["Optional. Anything you never want to see.","选填：你不想看到的内容。"],hint_pat:["Application number as filed.","以申请文件为准。"],hint_upl:["Required for university-originated assets only.","仅高校来源资产需要。"],hint_enc:["Any existing license, option or pledge on the asset.","该资产上任何在先许可、期权或质押。"],
+ns_b1:["APX verifies your institution (about 3 business days).","APX 核验你的机构（约 3 个工作日）。"],ns_b2:["You get an email at your corporate address.","结果发送至你的公司邮箱。"],ns_b3:["Your mandate goes live and matches are pushed to you.","你的需求生效，开始收到匹配推送。"],
+ns_s1:["AI pre-screening (2–3 business days).","AI 初筛（2–3 个工作日）。"],ns_s2:["You receive a score breakdown and suggestions.","你会收到评分拆解与改进建议。"],ns_s3:["Sign the listing mandate to go live as an anonymous teaser.","签署委托协议后以匿名 teaser 上架。"],
+back_asset:["Back to the asset","返回刚才的资产"],again2:["Submit another asset","再提交一个资产"],
+no_res:["No assets match these filters.","没有符合这些条件的资产。"],
+land_t:["Pipeline landscape","管线全景"],land_s:["Bubble size = APX score · click to open","气泡大小 = APX 评分 · 点击查看"],
+fn1:["Submitted","已提交"],fn2:["AI screened","AI 初筛通过"],fn3:["Listed","已上架"],fn4:["CDA signed","已签 CDA"],fn5:["Data room","数据室"],fn6:["LOI","意向书"],fn7:["Signed","已签约"],
+fun_t:["From submission to signing","从提交到签约"],fun_s:["Illustrative conversion over the last 12 months. Bar height is scaled by square root.","近 12 个月示例转化。柱高按平方根缩放。"],
+rad_avg:["Catalog average","目录均值"],vs:["vs catalog avg","对比目录均值"],peer_t:["Score vs catalog","评分在目录中的位置"],
+ly_t:["Three tiers of visibility","三层可见性"],mfit:["Match fit by criterion","各维度匹配"],int_by:["Interest by buyer type","按买方类型"],
+usd:["USD","美元"],demo:["Prototype · sample data only","原型 · 仅示例数据"]
+};
+const S={lang:'en',theme:'dark',role:'guest',q:'',sort:'new',
+flt:{area:[],target:[],stage:[],form:[],rights:[]},step:{buyer:0,seller:0},f:{buyer:{},seller:{}},err:{},done:{buyer:false,seller:false},
+fbOpen:{},watch:{'A-107':1},ret:'',demoOff:false,editM:-1,revoked:{},sentReq:{},
+mands:[
+{target:"Amylin",areas:["obesity"],stages:["pre","p1"],forms:["inj"],rights:"exgc",budget:"o_b3",excl:[["None","无"]]},
+{target:"GLP-1/GIP/GCG",areas:["obesity","mash"],stages:["p1","p2"],forms:["inj","oral"],rights:"global",budget:"o_b4",excl:[["Biosimilar-like designs","类似生物类似药的设计"]]}],
+reqs:[{id:"A-101",type:"cda",status:"signed",d:"2026-09-22"},{id:"A-101",type:"dr",status:"pending",d:"2026-09-26"},{id:"A-105",type:"cda",status:"pending",d:"2026-09-27"},{id:"A-103",type:"cda",status:"signed",d:"2026-09-10"},{id:"A-103",type:"dr",status:"opened",d:"2026-09-12"}]};
+const t=k=>T[k]?T[k][S.lang==='en'?0:1]:k;
+const L=p=>p[S.lang==='en'?0:1];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ---------- data ---------- */
+const A=[
+{id:"A-101",area:"obesity",tg:"amylin",mech:["Long-acting amylin/calcitonin receptor dual agonist (DACRA)","长效胰淀素/降钙素受体双重激动剂（DACRA）"],form:"inj",stage:"p1",ind:["Obesity","肥胖"],rights:"exgc",score:86,date:"2026-09-18",bk:[88,84,82,90],
+lg:["Amylin acts on satiety and gastric emptying via a route complementary to GLP-1. The dual-receptor profile aims for deeper weight loss with less nausea.","Amylin 通过与 GLP-1 互补的通路调节饱腹感与胃排空；双受体设计目标是更深减重、更轻恶心。"],
+dt:["Primary pharmacology, 12-week DIO mouse and NHP PK/PD, single-dose human PK","药效学、12 周 DIO 小鼠与猴 PK/PD、人体单次给药 PK"],
+cp:["Among the first few Amylin-class assets entering the clinic; behind two programs already in later clinical stages.","较早进入临床的 Amylin 类资产之一；落后于两个已处更后期临床的项目。"],
+df:["Weekly dosing with half-life supporting monthly exploration; no visible pigmentation signal in NHP.","周给药，半衰期支持每月给药探索；猴试验未见色素沉着信号。"]},
+{id:"A-102",area:"obesity",tg:"amylin",mech:["Selective amylin receptor (AMY3) agonist, Fc-fused","选择性胰淀素受体（AMY3）激动剂，Fc 融合"],form:"inj",stage:"pre",ind:["Obesity, type 2 diabetes","肥胖、2 型糖尿病"],rights:"global",score:78,date:"2026-09-12",bk:[80,70,84,78],
+lg:["AMY3 selectivity targets appetite control while avoiding calcitonin-receptor effects on bone turnover.","AMY3 选择性聚焦食欲控制，避免降钙素受体对骨代谢的影响。"],
+dt:["In vitro potency and selectivity, rodent efficacy, non-GLP tox range-finding","体外活性与选择性、啮齿类药效、非 GLP 毒理剂量探索"],
+cp:["Few preclinical peers with a selective AMY3 design.","临床前阶段采用 AMY3 选择性设计的同类项目很少。"],
+df:["Fc fusion enables biweekly to monthly dosing; scalable CHO manufacturing.","Fc 融合支持双周至每月给药；CHO 表达可规模化。"]},
+{id:"A-103",area:"obesity",tg:"amylin",mech:["Oral small-molecule amylin receptor positive allosteric modulator","口服小分子胰淀素受体正向变构调节剂"],form:"oral",stage:"pre",ind:["Obesity","肥胖"],rights:"global",score:71,date:"2026-08-30",bk:[74,62,80,68],
+lg:["Small-molecule modulation of the amylin receptor complex would remove the injection barrier for an already-validated pathway.","小分子调节胰淀素受体复合物，可为已验证通路去除注射门槛。"],
+dt:["Cell-based assays, rodent food-intake, oral PK in two species","细胞学实验、啮齿类摄食、两物种口服 PK"],
+cp:["A rare oral amylin approach; other oral programs are all preclinical.","少见的口服 Amylin 路线；其他口服项目均处临床前。"],
+df:["Oral route, low COGS, natural fit as combination partner for oral GLP-1.","口服给药、低成本，天然适合作为口服 GLP-1 的联用搭档。"]},
+{id:"A-104",area:"obesity",tg:"amylin",mech:["GLP-1R / amylin receptor dual agonist peptide","GLP-1R/胰淀素受体双重激动肽"],form:"inj",stage:"p1",ind:["Obesity, MASH","肥胖、MASH"],rights:"exgc",score:83,date:"2026-09-05",bk:[85,80,78,89],
+lg:["Single molecule combining incretin and amylin signaling to simplify dosing versus co-administration.","单分子整合肠促胰素与胰淀素信号，较联合给药更易用。"],
+dt:["DIO mouse, NHP PK/PD, Phase I SAD data (n=32)","DIO 小鼠、猴 PK/PD、I 期 SAD 数据（n=32）"],
+cp:["Comparable assets are in Phase 2; this is among the most advanced dual-agonist programs.","同类资产处于 II 期；本项目是进度靠前的双重激动剂之一。"],
+df:["Balanced receptor ratio tuned to keep GI adverse events low in SAD.","受体比例经调优，SAD 中胃肠道不良反应较低。"]},
+{id:"A-105",area:"obesity",tg:"multi",mech:["GLP-1 / GIP / glucagon triple agonist","GLP-1/GIP/胰高血糖素三重激动剂"],form:"inj",stage:"p2",ind:["Obesity, MASH","肥胖、MASH"],rights:"global",score:88,date:"2026-09-21",bk:[90,92,80,90],
+lg:["Glucagon receptor activity adds energy expenditure and hepatic fat reduction on top of incretin effects.","胰高血糖素受体活性在肠促胰素基础上增加能量消耗并降低肝脂肪。"],
+dt:["Phase I MAD and Phase II 24-week interim, liver fat MRI-PDFF subset","I 期 MAD 与 II 期 24 周中期数据，含 MRI-PDFF 肝脂肪亚组"],
+cp:["The class is crowded, but few triple agonists have Phase II obesity data.","该类竞争拥挤，但拥有 II 期减重数据的三靶点很少。"],
+df:["Weekly dosing, stronger liver-fat signal, GLP-1-dominant ratio limits heart-rate rise.","周给药、肝脂肪信号更强，GLP-1 主导比例限制心率上升。"]},
+{id:"A-106",area:"t2d",tg:"multi",mech:["Oral GLP-1 / GIP dual agonist peptide with absorption enhancer","口服 GLP-1/GIP 双激动肽（含吸收促进剂）"],form:"oral",stage:"p1",ind:["Type 2 diabetes","2 型糖尿病"],rights:"exgc",score:74,date:"2026-08-24",bk:[76,72,68,80],
+lg:["Dual incretin mechanism delivered orally to expand the addressable diabetes population.","口服双肠促胰素机制，扩大糖尿病可及人群。"],
+dt:["Rodent and dog PK, Phase I SAD/MAD in healthy volunteers","啮齿类与犬 PK、健康志愿者 I 期 SAD/MAD"],
+cp:["Oral peptide bioavailability remains the bottleneck for the class.","口服肽的生物利用度仍是该类瓶颈。"],
+df:["Proprietary enhancer reaching ~2% bioavailability in dogs.","自有吸收促进剂，犬体内生物利用度约 2%。"]},
+{id:"A-107",area:"obesity",tg:"glp1",mech:["Oral small-molecule GLP-1R biased agonist","口服小分子 GLP-1R 偏向性激动剂"],form:"oral",stage:"p2",ind:["Obesity","肥胖"],rights:"global",score:80,date:"2026-09-01",bk:[78,86,70,86],
+lg:["Biased signaling favors cAMP over β-arrestin to improve tolerability of oral dosing.","偏向 cAMP 而非 β-arrestin 信号，改善口服耐受性。"],
+dt:["Phase I SAD/MAD, Phase II 12-week dose-ranging, food-effect study","I 期 SAD/MAD、II 期 12 周剂量探索、食物影响研究"],
+cp:["Follower to first oral small molecule but with cleaner hepatic safety so far.","跟随首个口服小分子，目前肝安全性更干净。"],
+df:["No fasting requirement in food-effect study; once-daily dosing.","食物影响研究显示无需空腹；每日一次。"]},
+{id:"A-108",area:"muscle",tg:"mstn",mech:["Anti-myostatin/ActRII antibody for lean-mass preservation","抗肌生成抑制素/ActRII 抗体，保护瘦体重"],form:"inj",stage:"p1",ind:["Obesity (lean-mass preservation)","肥胖（保肌肉）"],rights:"global",score:76,date:"2026-08-15",bk:[80,68,72,84],
+lg:["GLP-1 based weight loss can lose 25-40% as lean mass; blocking myostatin signaling aims to keep muscle.","GLP-1 减重中 25–40% 为瘦体重；阻断肌生成抑制素信号旨在保住肌肉。"],
+dt:["Sarcopenia mouse model, NHP DEXA lean-mass, Phase I SAD","肌少症小鼠、猴 DEXA 瘦体重、I 期 SAD"],
+cp:["Several programs are in Phase 2; this is a differentiated add-on design.","数个项目处于 II 期；本项目为差异化的联用设计。"],
+df:["Designed as add-on to any incretin; monthly dosing potential.","定位为任意肠促胰素的联用附加药；可能每月给药。"]}
+];
+const OPT={area:["obesity","t2d","mash","muscle"],target:["amylin","multi","glp1","mstn"],stage:["pre","p1","p2"],form:["inj","oral"],rights:["global","exgc","naeu"]};
+const KEY={area:"ar_",target:"tg_",stage:"st_",form:"fm_",rights:"rt_"};
+const FL={area:"fl_area",target:"fl_target",stage:"fl_stage",form:"fl_form",rights:"fl_rights"};
+const SO={pre:0,p1:1,p2:2};
+const COMP={'A-101':['Verdant Peptide Labs','Singapore'],'A-102':['Northgate Biologics','Cambridge, US'],'A-103':['Kestrel Molecular','Basel, CH'],'A-104':['Lumen Metabolic','Copenhagen, DK'],'A-105':['Aurel Therapeutics','San Diego, US'],'A-106':['Tessera Bio','Tokyo, JP'],'A-107':['Orbis Pharma','Seoul, KR'],'A-108':['Halcyon Muscle Sciences','Boston, US']};
+const rstat=(id,ty)=>S.reqs.find(r=>r.id===id&&r.type===ty);
+const cdaOk=id=>{const r=rstat(id,'cda');return !!r&&r.status!=='pending'};
+const qm=k=>`<abbr class="qm" title="${esc(t('g_'+k))}">?</abbr>`;
+const star=id=>`<button class="star${S.watch[id]?' on':''}" data-watch="${id}" aria-label="${t('watch')}" title="${S.watch[id]?t('watching'):t('watch')}">${S.watch[id]?'★':'☆'}</button>`;
+const getA=id=>A.find(a=>a.id===id);
+/* dashboards data */
+const MATCH=[
+{id:"A-101",cells:[2,2,2,2,1],fit:94,why:[["Target and stage match your mandate #1 (Amylin, Preclinical/Phase I).","靶点与阶段匹配你的第 1 条需求（Amylin，临床前/I 期）。"]]},
+{id:"A-104",cells:[2,2,2,1,2],fit:91,why:[["Target matches mandate #1; territory ex-US fits.","靶点匹配第 1 条需求；区域权益（不含美国）符合。"]]},
+{id:"A-105",cells:[2,2,2,2,1],fit:89,why:[["Target and stage match your mandate #2 (GLP-1/GIP/GCG, Phase II).","靶点与阶段匹配你的第 2 条需求（GLP-1/GIP/GCG，II 期）。"]]},
+{id:"A-102",cells:[2,1,2,2,2],fit:82,why:[["Target matches mandate #1; stage is one step earlier than preferred.","靶点匹配第 1 条需求；阶段略早于偏好。"]]},
+{id:"A-108",cells:[1,2,2,2,1],fit:67,why:[["Adjacent to mandate #2: add-on for incretin therapies.","与第 2 条需求相邻：可作为肠促胰素疗法的联用药。"]]}];
+const SELL=[
+{id:"S-1",name:["GLP-1/GIP/GCG triple agonist","GLP-1/GIP/GCG 三重激动剂"],stage:5,score:88,bk:[90,92,80,90],
+ sg:[["Add non-human primate liver-fat data to the teaser.","在 teaser 中补充猴肝脂肪数据。"],["Clarify prior license status for Japan.","明确日本区在先许可状态。"]],
+ int:[{t:["US big pharma","美国大药企"],r:["US","美国"],cda:false},{t:["US big pharma","美国大药企"],r:["US","美国"],cda:true,n:"Halden Therapeutics (fictional)"},{t:["European big pharma","欧洲大药企"],r:["Europe","欧洲"],cda:false}],
+ dr:[{n:"Halden Therapeutics (fictional)",p:"J. Ortega",d:"2026-09-24"},{n:"Meridian Biopharma (fictional)",p:"L. Voss",d:"2026-09-26"}]},
+{id:"S-2",name:["Oral amylin receptor modulator","口服胰淀素受体调节剂"],stage:4,score:71,bk:[74,62,80,68],
+ sg:[["Add second-species oral PK to lift the data score.","补充第二物种口服 PK 以提升数据分。"]],
+ int:[{t:["Asian mid-size biotech","亚洲中型 biotech"],r:["Japan","日本"],cda:false}],dr:[]},
+{id:"S-3",name:["Muscle-preserving ActRII antibody","保肌肉 ActRII 抗体"],stage:3,score:76,bk:[80,68,72,84],
+ sg:[["Provide DEXA methodology details.","补充 DEXA 方法学细节。"]],int:[],dr:[]},
+{id:"S-4",name:["Fc-fused AMY3 agonist","Fc 融合 AMY3 激动剂"],stage:2,score:null,bk:null,sg:[],int:[],dr:[]},
+{id:"S-5",name:["Oral GLP-1/GIP peptide","口服 GLP-1/GIP 肽"],stage:1,score:null,bk:null,sg:[],int:[],dr:[]}];
+/* ---------- routing ---------- */
+function route(){const h=location.hash.slice(1)||'home';const [r,q]=h.split('?');return{r,p:new URLSearchParams(q||'')}}
+/* ---------- chrome ---------- */
+function chrome(){
+ const {r}=route();
+ const dash=S.role==='seller'?'#seller-dash':'#buyer-dash';
+ const on=x=>r===x?' class="on"':'';
+ const nav=`<a href="#home"${on('home')}>${t('nav_home')}</a><a href="#assets"${on('assets')}>${t('nav_assets')}</a><a href="#buyer"${on('buyer')}>${t('nav_buyer')}</a><a href="#seller"${on('seller')}>${t('nav_seller')}</a>`+(S.role!=='guest'?`<a href="${dash}"${(r==='buyer-dash'||r==='seller-dash')?' class="on"':''}>${t('nav_dash')}</a>`:'');
+ $('#bar').innerHTML=`<a class="logo" href="#home"><i></i>APX</a><nav class="links">${nav}</nav><div class="tools">
+ <span class="rolel">${t('role')}</span><select data-role aria-label="${t('role')}">${['guest','buyer','seller'].map(x=>`<option value="${x}"${S.role===x?' selected':''}>${t('r_'+x)}</option>`).join('')}</select>
+ <div class="seg"><button data-lang="en" class="${S.lang==='en'?'on':''}">EN</button><button data-lang="zh" class="${S.lang==='zh'?'on':''}">中</button></div>
+ <div class="seg"><button data-theme-t="light" class="${S.theme==='light'?'on':''}" aria-label="light">☀</button><button data-theme-t="dark" class="${S.theme==='dark'?'on':''}" aria-label="dark">☾</button></div></div>`;
+ $('#foot').innerHTML=`<div class="cols"><div><b style="color:var(--text)">APX</b> · ${t('demo')}<br>${t('f_contact')}: partners@apx.example · +1 212 000 0000</div><div style="max-width:420px">${t('f_priv')}</div><div><b style="color:var(--text)">${t('f_ind')}</b></div></div>`;
+ const tk=[[t('tk1'),'1,240'],[t('tk2'),'186'],[t('tk3'),'312'],[t('tk4'),'94','up'],...A.map(a=>[a.id+' '+t('tg_'+a.tg)+' '+t('st_'+a.stage),String(a.score),'up'])].map(([l,v,c])=>`<span>${l}<b class="${c||''}">${v}</b></span>`).join('');
+ $('#demo').innerHTML=S.demoOff?'':`<div class="wrap"><span>${t('demo_b')}</span><button data-demox>${t('demo_x')}</button></div>`;
+ $('#ticker').innerHTML=`<div class="tk">${tk}${tk}</div>`;
+ document.documentElement.lang=S.lang==='en'?'en':'zh-CN';document.documentElement.dataset.theme=S.theme;
+}
+const $=s=>document.querySelector(s);
+/* ---------- pages ---------- */
+const IC={lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',shield:'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',layers:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',file:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',flask:'<path d="M9 3h6M10 3v6l-5 10a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-10V3"/>',bld:'<path d="M4 21V5l8-2v18M12 9h8v12M4 21h16M7 9h2M7 13h2M7 17h2M15 13h2M15 17h2"/>',scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 12h8"/>',pen:'<path d="M4 20l4-1 11-11-3-3L5 16z"/>',list:'<path d="M4 6h16M4 12h16M4 18h10"/>',bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/>',check:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',db:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3 3 7 3s7-1.3 7-3"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>',trend:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M17 5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-5-4-5.5"/>',pen2:'<path d="M12 20h9M16 4l4 4L8 20H4v-4z"/>',plus:'<path d="M12 5v14M5 12h14"/>'};
+const ic=(n,s=18)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+function spark(a,w=90,h=30){const mx=Math.max(...a),mn=Math.min(...a);const p=a.map((v,i)=>[+(i*(w-4)/(a.length-1)+2).toFixed(1),+(h-4-(v-mn)/(mx-mn||1)*(h-8)).toFixed(1)]);const l=p.map(x=>x.join(',')).join(' ');const e=p[p.length-1];return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polygon points="2,${h} ${l} ${w-2},${h}" class="sa"/><polyline points="${l}" class="sl"/><circle cx="${e[0]}" cy="${e[1]}" r="3" class="sd"/></svg>`}
+function ring(v,sz=40,sw=4){const r=(sz-sw)/2,c=2*Math.PI*r;return `<svg class="ring" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}"><title>${v}</title><circle cx="${sz/2}" cy="${sz/2}" r="${r}" class="rt" stroke-width="${sw}"/><circle cx="${sz/2}" cy="${sz/2}" r="${r}" class="rf" stroke-width="${sw}" stroke-dasharray="${(c*v/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${sz/2} ${sz/2})" stroke-linecap="round"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" class="rv" font-size="${Math.round(sz*.32)}">${v}</text></svg>`}
+const dotsHtml=st=>`<span class="dots">${[0,1,2].map(i=>`<i class="${i<=SO[st]?'on':''}"></i>`).join('')}</span>`;
+const tdot=tg=>`<span class="dot" style="background:var(--tc-${tg})"></span>`;
+
+function landscape(){
+ const W=560,H=300,ml=126,mr=14,mt=12,mb=34,cw=(W-ml-mr)/3,rh=(H-mt-mb)/4,tg=OPT.target,st=OPT.stage;let g='';
+ st.forEach((k,i)=>{g+=`<rect x="${ml+i*cw}" y="${mt}" width="${cw}" height="${H-mt-mb}" class="lb${i%2}"/><text x="${ml+i*cw+cw/2}" y="${H-12}" text-anchor="middle" class="lt">${t('st_'+k)}</text>`});
+ tg.forEach((k,j)=>{const y=mt+j*rh+rh/2;g+=`<line x1="${ml}" x2="${W-mr}" y1="${mt+(j+1)*rh}" y2="${mt+(j+1)*rh}" class="lg"/><rect x="6" y="${y-4}" width="8" height="8" rx="2" fill="var(--tc-${k})"/><text x="22" y="${y+4}" class="lt lt2">${t('tg_'+k)}</text>`});
+ tg.forEach((k,j)=>st.forEach((sg,i)=>{const it=A.filter(a=>a.tg===k&&a.stage===sg);it.forEach((a,n)=>{const r=10+(a.score-65)/25*15,x=ml+i*cw+cw/2+(n-(it.length-1)/2)*46,y=mt+j*rh+rh/2;g+=`<a href="#asset?id=${a.id}" class="bub"><title>${a.id} · ${L(a.mech)} · ${a.score}</title><circle cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="var(--tc-${k})"/><text x="${x}" y="${y+3.5}" text-anchor="middle" class="bt">${a.score}</text></a>`})}));
+ return `<svg viewBox="0 0 ${W} ${H}" class="land" role="img" aria-label="${t('land_t')}">${g}</svg>`;
+}
+function funnel(){
+ const N=[1240,620,210,94,41,17,6],W=720,H=250,bw=70,gap=(W-bw*7)/6,cy=112,mx=Math.sqrt(N[0]),hh=v=>Math.max(8,Math.sqrt(v)/mx*150);let g='';
+ N.forEach((v,i)=>{const x=i*(bw+gap),h=hh(v);
+  if(i<N.length-1){const x2=(i+1)*(bw+gap),h2=hh(N[i+1]);g+=`<polygon class="fconn" points="${x+bw},${cy-h/2} ${x2},${cy-h2/2} ${x2},${cy+h2/2} ${x+bw},${cy+h/2}"/>`}
+  g+=`<rect class="fc" x="${x}" y="${cy-h/2}" width="${bw}" height="${h}" rx="3" opacity="${(.35+.65*i/6).toFixed(2)}" ${i===6?'style="fill:var(--up);opacity:1"':''}><title>${t('fn'+(i+1))}: ${v}</title></rect>`;
+  g+=`<text class="fv" x="${x+bw/2}" y="${cy-h/2-8}" text-anchor="middle">${v.toLocaleString('en-US')}</text><text class="fl" x="${x+bw/2}" y="${H-30}" text-anchor="middle">${t('fn'+(i+1))}</text>`;
+  if(i)g+=`<text class="fp" x="${x+bw/2}" y="${H-14}" text-anchor="middle">${Math.round(v/N[i-1]*100)}%</text>`});
+ return `<div class="funw"><svg class="fun" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t('fun_t')}">${g}</svg></div>`;
+}
+function radar(v,avg,sz=230){
+ const c=sz/2,R=sz/2-44,ax=[[0,-1],[1,0],[0,1],[-1,0]],pt=(x,i)=>[c+ax[i][0]*R*x/100,c+ax[i][1]*R*x/100],poly=a=>a.map((x,i)=>pt(x,i).join(',')).join(' ');
+ const nm=['sc_sci','sc_dat','sc_cmp','sc_dea'],anc=['middle','start','middle','end'];
+ let g=[25,50,75,100].map(k=>`<polygon class="rg" points="${poly([k,k,k,k])}"/>`).join('')+ax.map((_,i)=>`<line class="ra" x1="${c}" y1="${c}" x2="${pt(100,i)[0]}" y2="${pt(100,i)[1]}"/>`).join('');
+ g+=`<polygon class="rv2" points="${poly(avg)}"/><polygon class="rp" points="${poly(v)}"/>`+v.map((x,i)=>`<circle class="rd" cx="${pt(x,i)[0]}" cy="${pt(x,i)[1]}" r="4"/>`).join('');
+ g+=ax.map((a,i)=>{const x=c+a[0]*(R+14),y=c+a[1]*(R+14)+(a[1]===-1?-8:a[1]===1?8:0);return `<text x="${x}" y="${y}" text-anchor="${anc[i]}">${t(nm[i])}</text><text class="rn" x="${x}" y="${y+13}" text-anchor="${anc[i]}">${v[i]}</text>`}).join('');
+ return `<svg class="radar" width="100%" style="max-width:320px" viewBox="-40 0 ${sz+80} ${sz}" role="img" aria-label="${t('d_brk')}">${g}</svg>`;
+}
+function peer(id){
+ const x=v=>10+(v-60)/40*280;let g=`<line x1="10" x2="290" y1="22" y2="22" stroke="var(--line)" stroke-width="2"/>`;
+ [60,70,80,90,100].forEach(v=>{g+=`<line x1="${x(v)}" x2="${x(v)}" y1="18" y2="26" stroke="var(--line)"/><text x="${x(v)}" y="42" text-anchor="middle">${v}</text>`});
+ A.filter(a=>a.id!==id).forEach(a=>{g+=`<circle cx="${x(a.score)}" cy="22" r="4.5" fill="var(--mute)" opacity=".55"><title>${a.id} · ${a.score}</title></circle>`});
+ const me=getA(id);g+=`<circle cx="${x(me.score)}" cy="22" r="8" fill="var(--up)" stroke="var(--surface)" stroke-width="2"/>`;
+ return `<svg class="peer" viewBox="0 0 300 48" role="img" aria-label="${t('peer_t')}">${g}</svg>`;
+}
+function donut(items,sz=120,sw=18){
+ const tot=items.reduce((a,b)=>a+b[1],0),r=(sz-sw)/2,c=2*Math.PI*r,col=['--tc-amylin','--tc-multi','--tc-glp1','--tc-mstn'];let off=0,g='';
+ items.forEach(([l,v],i)=>{const len=v/tot*c;g+=`<circle cx="${sz/2}" cy="${sz/2}" r="${r}" fill="none" stroke="var(${col[i%4]})" stroke-width="${sw}" stroke-dasharray="${Math.max(len-2,1).toFixed(1)} ${(c-len+2).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 ${sz/2} ${sz/2})"><title>${l}: ${v}</title></circle>`;off+=len});
+ return `<div class="donutw"><svg class="donut" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">${g}<text class="dn" x="50%" y="50%" text-anchor="middle" dominant-baseline="central">${tot}</text></svg><div class="lgd">${items.map(([l,v],i)=>`<div><span class="dot" style="background:var(${col[i%4]});margin:0"></span>${l} <b class="mono">${v}</b></div>`).join('')}</div></div>`;
+}
+function isoLayers(){
+ const cx=150,hw=112,hh=40,th=12;
+ const plate=(cy,op,glyph)=>`<g class="iso" opacity="${op}"><polygon class="sd" points="${cx-hw},${cy} ${cx},${cy+hh} ${cx},${cy+hh+th} ${cx-hw},${cy+th}"/><polygon class="sd" points="${cx+hw},${cy} ${cx},${cy+hh} ${cx},${cy+hh+th} ${cx+hw},${cy+th}"/><polygon class="shade" points="${cx},${cy+hh} ${cx+hw},${cy} ${cx+hw},${cy+th} ${cx},${cy+hh+th}"/><polygon class="top" points="${cx},${cy-hh} ${cx+hw},${cy} ${cx},${cy+hh} ${cx-hw},${cy}"/>${glyph}</g>`;
+ const eye=y=>`<path class="glyph" d="M${cx-14},${y} q14,-13 28,0 q-14,13 -28,0z"/><circle class="glyph" cx="${cx}" cy="${y}" r="3"/>`;
+ const lock=y=>`<rect class="glyph" x="${cx-8}" y="${y-2}" width="16" height="11" rx="2"/><path class="glyph" d="M${cx-5},${y-2} v-4 a5,5 0 0 1 10,0 v4"/>`;
+ const key=y=>`<circle class="glyph" cx="${cx-8}" cy="${y+2}" r="5"/><path class="glyph" d="M${cx-3},${y+2} h16 M${cx+8},${y+2} v5"/>`;
+ return `<svg viewBox="0 0 300 300" role="img" aria-label="${t('ly_t')}">${plate(232,.45,key(230))}${plate(142,.7,lock(140))}${plate(52,1,eye(52))}</svg>`;
+}
+const kpi=(i,v,l)=>`<div><span class="ki">${ic(i,18)}</span><div><b>${v}</b><span>${l}</span></div></div>`;
+
+const tagS=a=>`<span class="tag acc">${t('st_'+a.stage)}</span>`;
+function home(){
+ const tiles=[['hm1','1,240','+18%',[610,690,720,800,860,990,1080,1240]],['hm2','186','+12',[120,132,141,150,158,166,176,186]],['hm3','312','+27',[190,205,222,240,262,281,296,312]],['hm4','94','+9',[38,46,55,61,70,78,86,94]]];
+ const QM={b1:'kyb',b2:'mandate',s4:'teaser',c1:'cda'};
+ const lane=(k,icons,keys)=>`<div class="lane"><div class="lname">${t(k)}</div><div class="nodes">${keys.map((x,i)=>`<div class="node"><div class="nic">${ic(icons[i],18)}</div><div class="nn">0${i+1}</div><div class="nt">${t(x)}${QM[x]?qm(QM[x]):''}</div></div>`).join('')}</div></div>`;
+ const sn=(n,x)=>`<h2><span class="sn">${n}</span>${x}</h2>`;
+ return `<section class="hero"><div class="hgrid"><div><span class="eyebrow">${t('launch')}</span><h1 style="margin-top:12px">${t('h_title')}</h1><p class="lead">${t('h_lead')}</p>
+ <div class="cta">${S.role==='guest'?`<a class="btn" href="#buyer">${t('h_buyer')}</a><a class="btn ghost" href="#seller">${t('h_seller')}</a><a class="btn ghost" href="#assets">${t('h_browse')} →</a>`:S.role==='buyer'?`<a class="btn" href="#buyer-dash">${t('cta_dash')}</a><a class="btn ghost" href="#assets">${t('h_browse')} →</a>`:`<a class="btn" href="#seller-dash">${t('cta_dash')}</a><a class="btn ghost" href="#seller">${t('cta_more')}</a>`}</div>
+ <div class="chips"><span class="chip">${ic('shield',14)}${t('tr1t')}</span><span class="chip">${ic('bld',14)}${t('tr2t')}</span><span class="chip">${ic('layers',14)}${t('tr3t')}</span><span class="chip">${ic('globe',14)}${t('tr4t')}</span></div></div>
+ <div class="panel"><div class="ph"><span>${t('land_t')}</span><span style="text-transform:none;letter-spacing:0">${t('land_s')}</span></div><div style="padding:10px 12px 6px">${landscape()}</div></div></div>
+ <div class="panel" style="margin-top:22px"><div class="tiles t4">${tiles.map(([k,v,d,a])=>`<div class="tile"><span class="tl">${t(k)}</span><div class="row2"><div><div class="tv">${v}</div><div class="td">▲ ${d}</div></div>${spark(a,72,28)}</div></div>`).join('')}</div><div class="pf">${t('m_h')} · ${t('m_note')}</div></div></section>
+ <section class="blk">${sn('01',t('how_h'))}<p class="sub">${t('how_s')}</p>
+ ${lane('bt',['bld','target','scan','bell'],['b1','b2','b3','b4'])}${lane('st',['file','scan','pen','list'],['s1','s2','s3','s4'])}
+ <div class="conv"><b>${ic('users',16)}${t('mp')}</b></div>
+ <div class="lane chainl"><div class="nodes">${[['c1','lock'],['c2','db'],['c3','mail'],['c4','pen2']].map(([k,i],n)=>`<div class="node"><div class="nic">${ic(i,18)}</div><div class="nn">0${n+1}</div><div class="nt"><b>${t(k)}</b>${QM[k]?qm(QM[k]):''}</div></div>`).join('')}</div></div></section>
+ <section class="blk">${sn('02',t('fun_t'))}<p class="sub">${t('fun_s')}</p><div class="card">${funnel()}</div></section>
+ <section class="blk"><span class="eyebrow">${t('sp_h')}</span><h2 style="margin-top:4px"><span class="sn">03</span>${t('sp_s')}</h2><div class="grid g3" style="margin-top:14px">${[[1,'globe'],[2,'target'],[3,'layers']].map(([i,c])=>`<div class="card feat"><div class="fi">${ic(c,20)}</div><h3>${t('w'+i+'t')}</h3><p class="mute">${t('w'+i+'d')}</p></div>`).join('')}</div>
+ <p style="margin-top:14px"><a href="#assets">${t('h_browse')} →</a></p></section>
+ <section class="blk">${sn('04',t('tr_h'))}<p class="sub">${t('tr_s')}</p>
+ <div class="card trustgrid">${isoLayers()}<div>${[['eye',1],['lock',2],['key',3]].map(([c,n])=>`<div class="trr"><h3>${ic(c,18)}${t('L'+n)}</h3><p class="mute sm" style="margin-top:4px">${t('ly'+n)}</p></div>`).join('')}</div></div>
+ <div class="grid g4">${[[1,'shield'],[2,'bld'],[3,'layers'],[4,'globe']].map(([i,c])=>`<div class="card feat"><div class="fi">${ic(c,20)}</div><h3>${t('tr'+i+'t')}</h3><p class="mute sm">${t('tr'+i+'d')}</p></div>`).join('')}</div></section>`;
+}
+/* catalog */
+function filtered(){
+ let r=A.filter(a=>{
+  for(const k of Object.keys(OPT)){const f=S.flt[k];if(f.length){const v=k==='area'?a.area:k==='target'?a.tg:k==='stage'?a.stage:k==='form'?a.form:a.rights;if(!f.includes(v))return false}}
+  if(S.q){const s=S.q.toLowerCase();const hay=[L(a.mech),L(a.ind),t('tg_'+a.tg),a.mech[0],a.mech[1],a.ind[0],a.ind[1]].join(' ').toLowerCase();if(!hay.includes(s))return false}
+  return true});
+ r.sort((a,b)=>S.sort==='score'?b.score-a.score:S.sort==='stage'?SO[b.stage]-SO[a.stage]:b.date.localeCompare(a.date));return r;
+}
+function acard(a){
+ return `<div class="mrow" data-href="#asset?id=${a.id}"><div class="mono mute" data-l="ID">${a.id}<br>${star(a.id)}</div>
+ <div><div class="ttl">${L(a.mech)}</div><div class="chipt">${tdot(a.tg)}${t('tg_'+a.tg)} · ${t('ar_'+a.area)}</div><div class="co">${t('co')}</div></div>
+ <div data-l="${t('a_stage')}">${dotsHtml(a.stage)}<span class="sm">${t('st_'+a.stage)}</span></div><div data-l="${t('a_form')}">${t('fm_'+a.form)}</div>
+ <div data-l="${t('a_ind')}">${L(a.ind)}</div><div data-l="${t('a_rights')}">${t('rt_'+a.rights)}</div>
+ <div data-l="${t('score')}">${ring(a.score,38,4)}</div><div class="mono mute" data-l="${t('a_date')}">${a.date}</div></div>`;
+}
+function snap(r){
+ const cnt=(f,vals)=>vals.map(v=>[v,r.filter(a=>f(a)===v).length]);
+ const tg=cnt(a=>a.tg,OPT.target),sg=cnt(a=>a.stage,OPT.stage),mx=Math.max(1,...sg.map(x=>x[1]));
+ return `<div class="snap"><div><span class="mute sm">${t('snap_t')}</span><div class="big" style="margin-top:8px">${r.length}</div><span class="mute sm">${t('found')}</span></div>
+ <div><span class="mute sm">${t('by_target')}</span><div class="stk">${tg.filter(x=>x[1]).map(([k,n])=>`<i style="flex:${n};background:var(--tc-${k})" title="${t('tg_'+k)}: ${n}"></i>`).join('')}</div><div class="leg">${tg.filter(x=>x[1]).map(([k,n])=>`<span>${tdot(k)}${t('tg_'+k)}<b>${n}</b></span>`).join('')}</div></div>
+ <div><span class="mute sm">${t('by_stage')}</span>${sg.map(([k,n])=>`<div class="hb"><span>${t('st_'+k)}</span><div class="t"><i style="width:${n/mx*100}%"></i></div><b class="mono">${n}</b></div>`).join('')}</div></div>`;
+}
+function listHtml(){
+ const r=filtered();
+ const ch=Object.keys(S.flt).flatMap(k=>S.flt[k].map(v=>`<button data-rmf="${k}|${v}">${t(KEY[k]+v)} ✕</button>`)).concat(S.q?[`<button data-rmf="q|">“${esc(S.q)}” ✕</button>`]:[]);
+ const cta=S.role==='seller'?'':`<div class="card cta-band"><div><b>${t('m_cta_t')}</b><div class="mute">${t('m_cta_b')}</div></div>${S.role==='buyer'?`<a class="btn ghost" href="#buyer-dash">${t('m_cta_e')}</a>`:`<a class="btn" href="#buyer">${t('m_cta_r')}</a>`}</div>`;
+ return snap(r)+(ch.length?`<div class="fchips">${ch.join('')}<button data-clearf style="border-style:dashed">${t('clear')}</button></div>`:'')+(r.length?`<div class="mkt"><div class="mrow mh"><div>ID</div><div>${t('a_mech')} / ${t('a_target')}</div><div>${t('a_stage')}</div><div>${t('a_form')}</div><div>${t('a_ind')}</div><div>${t('a_rights')}</div><div>${t('score')}</div><div>${t('a_date')}</div></div>${r.map(acard).join('')}</div>`:`<div class="card success"><p class="mute" style="margin-bottom:12px">${t('no_res')}</p><button class="btn ghost" data-clearf>${t('clear')}</button></div>`)+cta;
+}
+function assets(){
+ const fl=Object.keys(OPT).map(k=>`<h4>${t(FL[k])}</h4>`+OPT[k].map(v=>`<label><input type="checkbox" data-flt="${k}" value="${v}"${S.flt[k].includes(v)?' checked':''}>${t(KEY[k]+v)}</label>`).join('')).join('');
+ return `<h2>${t('as_h')}</h2><p class="mute" style="margin:4px 0 18px">${t('as_s')}</p><div class="cat"><aside class="card filters">${fl}<p style="margin-top:14px"><a href="#" data-clearf>${t('clear')}</a></p></aside>
+ <div><div class="toolbar"><input type="text" id="q" placeholder="${t('search')}" value="${esc(S.q)}"><select data-sort aria-label="${t('sort')}">${[['new','so_new'],['score','so_score'],['stage','so_stage']].map(([v,k])=>`<option value="${v}"${S.sort===v?' selected':''}>${t(k)}</option>`).join('')}</select></div><div id="list">${listHtml()}</div></div></div>`;
+}
+/* detail */
+function asset(p){
+ const a=getA(p.get('id')||'A-101');if(!a)return `<div class="card">${t('notfound')}</div>`;
+ const B=S.role==='buyer',cda=B?rstat(a.id,'cda'):null,dr=B?rstat(a.id,'dr'):null,ok2=B&&cdaOk(a.id),ok3=!!dr&&dr.status==='opened';
+ const state=ok3?4:dr?3:ok2?2:cda?1:0;
+ const bk=[['sc_sci',a.bk[0]],['sc_dat',a.bk[1]],['sc_cmp',a.bk[2]],['sc_dea',a.bk[3]]];
+ const stages=[t('st_pre'),t('st_p1'),t('st_p2'),t('ph'),t('filing')],cur=SO[a.stage];
+ const skel='<div class="skel"><i style="width:90%"></i><i style="width:70%"></i><i style="width:80%"></i></div>';
+ const ins=[['d_logic','target',a.lg],['d_data','flask',a.dt],['d_comp','trend',a.cp],['d_diff','layers',a.df]];
+ const path=[t('ap1'),t('ap2'),t('ap3'),t('ap4'),t('ap5')];const pdone=[!!cda,!!cda,ok2,ok2,ok3];const pcur=ok3?4:dr?4:ok2?3:cda?1:0;
+ const sent=`<div class="tag warn" style="white-space:normal;padding:8px 12px">⏳ ${t('sent')}</div>`;
+ const req=(ty,lbl,dis)=>`<button class="btn" data-req="${ty}" data-id="${a.id}"${dis?' disabled':''}>${t(lbl)}</button>`;
+ const co=COMP[a.id];const avgS=Math.round(A.reduce((x,y)=>x+y.score,0)/A.length),avgB=[0,1,2,3].map(k=>Math.round(A.reduce((x,y)=>x+y.bk[k],0)/A.length));
+ const l2=ok2?`<div class="card lock unl"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="tag ok">✓ ${t('u2')}</span></div><dl class="kv"><dt>${t('u2_co')}</dt><dd><b>${co[0]}</b> <span class="mute">(fictional)</span></dd><dt>${t('u2_hq')}</dt><dd>${co[1]}</dd><dt>${t('u2_f')}</dt><dd>${[t('u2_f1'),t('u2_f2'),t('u2_f3')].map(x=>`<span class="tag" style="margin-right:4px">${x}</span>`).join('')}</dd></dl><p class="mute sm" style="margin-top:10px">${t('u2_c')}</p></div>`
+  :`<div class="card lock">${skel}<div class="ico">${ic('lock',22)}</div><h3 style="margin-top:6px">${t('lock2')}${qm('cda')}</h3><p class="mute" style="margin:6px 0 14px">${t('lock2s')}</p>${cda?sent:req('cda','req_cda')}</div>`;
+ const l3=ok3?`<div class="card lock unl"><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span class="tag ok">✓ ${t('u3')}</span></div><p class="mute sm">${t('u3s')}</p><div class="files">${[['dr1','db'],['dr2','file'],['dr3','flask']].map(([x,c])=>`<div><span>${ic(c,14)} ${t(x)}</span><span class="tag">${t('view_f')}</span></div>`).join('')}</div></div>`
+  :`<div class="card lock">${skel}<div class="ico">${ic('key',22)}</div><h3 style="margin-top:6px">${t('lock3')}</h3><ul>${[['dr1','db'],['dr2','file'],['dr3','flask']].map(([x,c])=>`<li class="tag" style="display:inline-flex;gap:6px;align-items:center">${ic(c,13)}${t(x)}</li>`).join('')}</ul><p class="mute" style="margin:6px 0 14px">${t('lock3s')}</p>${dr?sent:req('dr','req_dr',!ok2)}${!ok2&&!dr?`<div class="hint" style="margin-top:8px">${t('need_cda')}</div>`:''}</div>`;
+ const nextAct=state===0?req('cda','req_cda'):state===2?req('dr','req_dr'):'';
+ return `<div class="crumb"><a href="#assets">${t('back')}</a> / <span class="mono">${a.id}</span></div>
+ <div class="layers" style="margin-bottom:14px"><div class="layp o1"><div class="lb">${ic('eye',20)}<span>L1 · ✓</span></div><b>${t('L1')}</b><div class="lv"><i></i></div></div><div class="layp o2"><div class="lb">${ic(ok2?'eye':'lock',20)}<span>L2${ok2?' · ✓':''}</span></div><b>${t('L2')}</b><div class="lv"><i style="width:${ok2?66:0}%"></i></div></div><div class="layp o3"><div class="lb">${ic(ok3?'eye':'key',20)}<span>L3${ok3?' · ✓':''}</span></div><b>${t('L3')}</b><div class="lv"><i style="width:${ok3?100:0}%"></i></div></div></div>
+ <div class="two"><div>
+ <div class="card"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="tag mono">${a.id}</span><span class="tag">${tdot(a.tg)}${t('tg_'+a.tg)}</span><span class="tag">${t('fm_'+a.form)}</span><span style="margin-left:auto">${star(a.id)}</span></div>
+ <h2 style="margin-top:10px">${L(a.mech)}</h2><div class="co" style="margin-top:4px">${ic('bld',12)} ${ok2?`${co[0]} (fictional)`:t('co')}</div>
+ <div class="tl">${stages.map((x,i)=>`<div class="${i<=cur?'on':''}${i===cur?' cur':''}">${x}</div>`).join('')}</div>
+ <div class="facts"><div><span>${t('a_target')}</span><b>${t('tg_'+a.tg)}</b></div><div><span>${t('a_ind')}</span><b>${L(a.ind)}</b></div><div><span>${t('a_form')}</span><b>${t('fm_'+a.form)}</b></div><div><span>${t('a_stage')}</span><b>${t('st_'+a.stage)}</b></div><div><span>${t('a_rights')}</span><b>${t('rt_'+a.rights)}</b></div><div><span>${t('a_date')}</span><b class="mono">${a.date}</b></div></div>
+ <div class="ins">${ins.map(([k,c,v])=>`<div class="card"><div class="fi">${ic(c,17)}</div><div><h4>${t(k)}</h4><p>${L(v)}</p></div></div>`).join('')}</div></div>
+ <div class="layer"><h4 style="margin-bottom:6px">${t('ap_h')}</h4><div class="card" style="padding:4px 14px 10px"><div class="tl" style="grid-template-columns:repeat(5,1fr)">${path.map((x,i)=>`<div class="${pdone[i]?'on':''}${i===pcur?' cur':''}">${x}</div>`).join('')}</div></div></div>
+ <div class="layer">${l2}</div><div class="layer">${l3}</div>
+ </div>
+ <aside style="position:sticky;top:90px"><div class="card nextb"><h4>${t('nx_h')}</h4><p style="margin-bottom:${nextAct?10:0}px">${t('nx'+state)}</p>${nextAct}</div>
+ <div class="card"><h4>${t('d_brk')}</h4><div style="display:flex;align-items:flex-end;justify-content:space-between;margin:10px 0 0"><div><div class="big-n">${a.score}</div><div class="delta">${a.score-avgS>=0?'▲ +':'▼ '}${a.score-avgS} ${t('vs')}</div></div><div class="mute sm" style="text-align:right"><svg width="22" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="22" y2="4" stroke="var(--mute)" stroke-dasharray="4 3" stroke-width="2"/></svg> ${t('rad_avg')}</div></div>
+ ${radar(a.bk,avgB)}
+ <div class="brk">${bk.map(([k,v],i)=>`<div class="row"><span>${t(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${v}%"></div></div><b class="mono">${v}</b></div>`).join('')}</div>
+ <h4 style="margin:16px 0 4px">${t('peer_t')}</h4>${peer(a.id)}</div></aside></div>`;
+}
+/* forms */
+const BF=[
+ [{n:'org',r:1},{n:'country',r:1},{n:'type',k:'sel',r:1,o:['big','mid','fund','other']},{n:'site',k:'url',r:1}],
+ [{n:'name',r:1},{n:'jt',r:1},{n:'email',k:'email',r:1},{n:'li',k:'url'}],
+ [{n:'areas',k:'multi',r:1,o:OPT.area.map(x=>[x,'ar_'+x])},{n:'mtarget',r:1},{n:'stages',k:'multi',r:1,o:OPT.stage.map(x=>[x,'st_'+x])},{n:'forms',k:'multi',o:OPT.form.map(x=>[x,'fm_'+x])},{n:'mrights',k:'sel',o:OPT.rights.map(x=>x),pre:'rt_'},{n:'budget',k:'sel',r:1,o:['b1','b2','b3','b4'],pre:'o_'},{n:'excl',k:'area',full:1}],
+ [{n:'cf',k:'confirm',r:1,l:'c_buyer'}]];
+const SF=[
+ [{n:'company',r:1},{n:'uscc',r:1},{n:'contact_p',r:1},{n:'jt',r:1},{n:'email',k:'email',r:1,full:1}],
+ [{n:'atarget',r:1},{n:'amech',r:1},{n:'aform',k:'sel',r:1,o:OPT.form,pre:'fm_'},{n:'astage',k:'sel',r:1,o:OPT.stage,pre:'st_'},{n:'aind',r:1,full:1},{n:'adata',k:'multi',r:1,o:['vitro','animal','monkey','human'].map(x=>[x,'o_'+x])},{n:'arights',k:'multi',r:1,o:OPT.rights.map(x=>[x,'rt_'+x])}],
+ [{n:'pat',r:1},{n:'holder',r:1},{n:'enc',k:'sel',r:1,o:['no','yes'],pre:'o_'},{n:'upl',k:'upload',full:1}],
+ [{n:'cf',k:'confirm',r:1,l:'c_seller'}]];
+const PERSONAL=/@(gmail|googlemail|qq|163|126|yeah|sina|sohu|foxmail|outlook|hotmail|live|yahoo|icloud|proton|protonmail|aol)\./i;
+function fld(form,d){
+ const V=S.f[form],v=V[d.n],e=S.err[form+'.'+d.n];const lab=d.k==='confirm'?'':t('f_'+d.n);
+ const req=d.r&&d.k!=='confirm'?'<span class="req"> *</span>':'';
+ let inp='';const key=form+'.'+d.n;
+ if(d.k==='sel')inp=`<select data-f="${key}"><option value="">—</option>${d.o.map(o=>{const val=d.pre?o:o;const k=(d.pre||'o_')+o;return `<option value="${o}"${v===o?' selected':''}>${t(k)}</option>`}).join('')}</select>`;
+ else if(d.k==='multi')inp=`<div class="opts">${d.o.map(([o,k])=>`<label class="chk"><input type="checkbox" data-m="${key}" value="${o}"${(v||[]).includes(o)?' checked':''}>${t(k)}</label>`).join('')}</div>`;
+ else if(d.k==='area')inp=`<textarea rows="2" data-f="${key}">${esc(v||'')}</textarea>`;
+ else if(d.k==='confirm')inp=`<label class="chk"><input type="checkbox" data-f="${key}"${v?' checked':''}>${t(d.l)}</label>`;
+ else if(d.k==='upload')inp=`<div class="upload${v?' has':''}" data-upl="${key}">${v?t('upl_ok'):t('upl_t')}</div>`;
+ else inp=`<input type="${d.k==='email'?'email':'text'}" data-f="${key}" value="${esc(v||'')}" autocomplete="off">`;
+ const lb=d.k==='multi'||d.k==='upload'||d.k==='confirm'?`<span class="lbl">${lab}${req}</span>`:`<label>${lab}${req}</label>`;
+ return `<div class="fld${d.full||d.k==='multi'||d.k==='confirm'?' full':''}${e?' bad':''}">${lb}${inp}${T['hint_'+d.n]&&!e?`<span class="hint">${t('hint_'+d.n)}</span>`:''}${e?`<span class="emsg">${t(e)}</span>`:''}</div>`;
+}
+function wizard(form){
+ const isB=form==='buyer',defs=isB?BF:SF,st=S.step[form],pr=T[isB?'prog_b':'prog_s'];
+ const prog=pr[S.lang==='en'?0:1];
+ if(S.done[form]){const d=isB?'b':'s';const back=isB&&S.ret&&S.ret.indexOf('#asset')===0;
+  return `<div class="formw card success"><div class="ok-i">✓</div><h2>${t(d+'_done_t')}</h2><p class="mute" style="margin:8px 0 18px">${t(d+'_done_d')}</p>
+  <ol class="steps" style="text-align:left;max-width:460px;margin:0 auto 20px">${[1,2,3].map(i=>`<li><span class="n">${i}</span><span>${t('ns_'+d+i)}</span></li>`).join('')}</ol>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><a class="btn" href="${isB?'#buyer-dash':'#seller-dash'}" data-setrole="${form}">${t(isB?'bd_h':'sd_h')}</a>${back?`<a class="btn ghost" href="${S.ret}" data-setrole="buyer">${t('back_asset')}</a>`:isB?`<a class="btn ghost" href="#assets" data-setrole="buyer">${t('h_browse')}</a>`:`<button class="btn ghost" data-reset="seller">${t('again2')}</button>`}</div></div>`}
+ return `<div class="formw"><h2>${t(isB?'by_h':'sl_h')}</h2><p class="mute" style="margin-top:4px">${t(isB?'by_s':'sl_s')}</p>
+ <div class="prog">${prog.map((x,i)=>`<div class="${i<st?'done':i===st?'on':''}"${i<st?` data-goto="${form}:${i}" style="cursor:pointer"`:''}>${i<st?'✓':i+1}. ${x}</div>`).join('')}</div>
+ <p class="sm mute" style="margin-bottom:8px">${t('step')} ${st+1}/4 · ${t('sdesc_'+(isB?'b':'s')+st)}${st===2&&isB?qm('mandate'):''}${st===0?` · ${t('est')}`:''}</p>
+ <div class="card"><div class="fg">${defs[st].map(d=>fld(form,d)).join('')}</div>
+ <div class="actions"><button class="btn ghost" data-prev="${form}"${st===0?' disabled':''}>${t('prev')}</button><button class="btn" data-next="${form}">${st===3?t('submit'):t('next')}</button></div></div></div>`;
+}
+function validate(form){
+ const defs=(form==='buyer'?BF:SF)[S.step[form]],V=S.f[form];let ok=true;
+ defs.forEach(d=>{const k=form+'.'+d.n;const v=V[d.n];delete S.err[k];let e='';
+  const empty=d.k==='multi'?!(v&&v.length):d.k==='confirm'?!v:!(v&&String(v).trim());
+  if(d.r&&empty)e=d.k==='multi'?'e_multi':d.k==='confirm'?'e_confirm':'required';
+  else if(!empty){
+   if(d.k==='email'){if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v))e='e_email';else if(PERSONAL.test(v))e='e_pers'}
+   else if(d.k==='url'&&!/^(https?:\/\/)?[\w-]+(\.[\w-]+)+\S*$/i.test(v))e='e_url';
+   else if(d.k==='uscc'&&String(v).trim().length!==18)e='e_uscc';}
+  if(e){S.err[k]=e;ok=false}});
+ return ok;
+}
+/* dashboards */
+function gate(){return `<div class="card success"><h2>${t('gate_t')}</h2><p class="mute" style="margin:8px 0 16px">${t('gate_b')}</p><button class="btn" data-setr="buyer">${t('r_buyer')}</button> <button class="btn ghost" data-setr="seller">${t('r_seller')}</button></div>`}
+const statusTag=s=>`<span class="tag ${s==='pending'?'warn':s==='signed'?'acc':'ok'}">${t('rs_'+s)}</span>`;
+function buyerDash(){
+ if(S.role!=='buyer')return gate();
+ const ms=S.mands.map((m,i)=>{
+  if(S.editM===i)return `<div class="card"><h4>${t('mand')} #${i+1}</h4><div class="fg" style="margin-top:10px"><div class="fld"><label>${t('f_mtarget')}</label><input type="text" id="e-target" value="${esc(m.target)}"></div>
+  <div class="fld"><label>${t('f_budget')}</label><select id="e-budget">${['b1','b2','b3','b4'].map(x=>`<option value="o_${x}"${m.budget==='o_'+x?' selected':''}>${t('o_'+x)}</option>`).join('')}</select></div>
+  <div class="fld"><label>${t('f_mrights')}</label><select id="e-rights">${OPT.rights.map(x=>`<option value="${x}"${m.rights===x?' selected':''}>${t('rt_'+x)}</option>`).join('')}</select></div></div>
+  <div class="actions" style="justify-content:flex-end;gap:8px"><button class="btn ghost sm" data-editm="-1">${t('cancel')}</button><button class="btn sm" data-savem="${i}">${t('save')}</button></div></div>`;
+  const bi=['o_b1','o_b2','o_b3','o_b4'].indexOf(m.budget);
+  return `<div class="card"><div class="row2"><div><h4>${t('mand')} #${i+1}</h4><h3 style="font-size:20px;margin-top:4px">${esc(m.target)}</h3></div><button class="btn ghost sm" data-editm="${i}">${t('edit')}</button></div>
+  <div class="fchips" style="margin-top:12px;cursor:default">${m.areas.map(x=>`<span class="chip">${t('ar_'+x)}</span>`).join('')}${m.stages.map(x=>`<span class="chip">${dotsHtml(x)}${t('st_'+x)}</span>`).join('')}${m.forms.map(x=>`<span class="chip">${t('fm_'+x)}</span>`).join('')}<span class="chip">${ic('globe',13)}${t('rt_'+m.rights)}</span></div>
+  <h4 style="margin:14px 0 6px">${t('mm_budget')}</h4><div class="gauge">${[0,1,2,3].map(k=>`<i class="${k===bi?'on':k<bi?'lo':''}"></i>`).join('')}</div><div class="row2 mono sm" style="margin-top:4px"><span class="mute">$0</span><b>${t(m.budget)}</b><span class="mute">$100M+</span></div>
+  <div class="nxl" style="margin-top:12px">${ic('shield',14)}${t('mm_excl')}: ${Array.isArray(m.excl)&&Array.isArray(m.excl[0])?L(m.excl[0]):esc(m.excl)}</div></div>`}).join('');
+ const mt=MATCH.slice().sort((a,b)=>b.fit-a.fit).map(m=>{const a=getA(m.id);return `<div class="card"><div class="row2"><div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="tag mono">${a.id}</span>${tagS(a)}<span class="tag">${t('tg_'+a.tg)}</span></div><h3 style="margin-top:6px"><a href="#asset?id=${a.id}" style="color:var(--text)">${L(a.mech)}</a></h3></div><div style="display:flex;gap:10px;align-items:center"><span class="mute sm">${t('fit')}</span>${ring(m.fit,48,5)}</div></div>
+ <div class="info" style="margin-top:10px"><b>${t('why')}:</b> ${L(m.why[0])}</div><div class="hm">${['a_target','a_stage','a_form','a_rights','mm_budget'].map((k,i)=>`<div><i style="opacity:${[.15,.5,1][m.cells[i]]}" title="${t(k)}"></i><span>${t(k)}</span></div>`).join('')}</div><p style="margin-top:10px"><a class="btn sm ghost" href="#asset?id=${a.id}">${t('view')}</a></p></div>`}).join('');
+ const nxt=r=>r.status==='pending'?`<span class="mute">${t('nxp')}</span>`:r.type==='cda'?`<a href="#asset?id=${r.id}">${t('nxs')}</a>`:`<a href="#asset?id=${r.id}">${t('nxo')}</a>`;
+ const rq=S.reqs.map(r=>{const a=getA(r.id);return `<tr><td><a href="#asset?id=${r.id}"><span class="mono">${r.id}</span></a> · ${L(a.mech).slice(0,42)}…</td><td>${t('rq_'+r.type)}</td><td>${statusTag(r.status)}</td><td>${nxt(r)}</td><td class="mono">${r.d}</td></tr>`}).join('');
+ const wl=Object.keys(S.watch).filter(k=>S.watch[k]).map(id=>{const a=getA(id);return `<div class="card row2" style="padding:10px 14px"><div><span class="tag mono">${id}</span> <b>${L(a.mech)}</b><div class="co">${tdot(a.tg)}${t('tg_'+a.tg)} · ${t('st_'+a.stage)}</div></div><div style="display:flex;gap:10px;align-items:center">${ring(a.score,36,4)}${star(id)}<a class="btn sm ghost" href="#asset?id=${id}">${t('view')}</a></div></div>`}).join('')||`<div class="card mute">${t('wl_empty')}</div>`;
+ const pend=S.reqs.filter(r=>r.status==='pending').length,opened=S.reqs.filter(r=>r.status==='opened').length;
+ return `<div class="dh"><h2>${t('bd_h')}</h2><span class="tag ok">✓ ${t('verified')}</span></div>
+ <div class="nba"><div>${ic('bell',20)}<span>${t('nb_b').replace('{n}',MATCH.filter(m=>m.fit>=85).length)}</span></div><button class="btn sm" data-scroll="#bd-matches">${t('nb_b_go')}</button></div>
+ <div class="kpis">${kpi('target',S.mands.length,t('k_m'))}${kpi('bell',MATCH.length,t('k_new'))}${kpi('mail',pend,t('k_open'))}${kpi('db',opened,t('k_dr'))}</div>
+ <div class="dsec"><h3>${t('bd_m')}${qm('mandate')}</h3><div class="grid g2">${ms}</div></div>
+ <div class="dsec" id="bd-matches"><h3>${t('bd_p')}</h3><p class="mute sm" style="margin:-6px 0 10px">${t('bd_ps')}</p><div class="list">${mt}</div></div>
+ <div class="dsec"><h3>${t('wl')}</h3>${wl}</div>
+ <div class="dsec"><h3>${t('bd_r')}</h3><div class="card" style="overflow-x:auto"><table><tr><th>${t('asset')}</th><th>${t('type')}</th><th>${t('status')}</th><th>${t('nx_col')}</th><th>${t('date')}</th></tr>${rq}</table></div></div>`;
+}
+function sellerDash(){
+ if(S.role!=='seller')return gate();
+ const stg=['p1','p2','p3','p4','p5'];
+ const rows=SELL.map(s=>{
+  const open=S.fbOpen[s.id];
+  const fb=s.bk?`<div class="brk" style="max-width:420px">${[['sc_sci',s.bk[0]],['sc_dat',s.bk[1]],['sc_cmp',s.bk[2]],['sc_dea',s.bk[3]]].map(([k,v])=>`<div class="row"><span>${t(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${v}%"></div></div><b class="mono">${v}</b></div>`).join('')}</div><h4 style="margin:12px 0 4px">${t('sugg')}</h4><ul style="margin:0;padding-left:18px">${s.sg.map(x=>`<li>${L(x)}</li>`).join('')}</ul>`:`<p class="mute">${t('fb_wait')}</p>`;
+  return `<div class="card"><div class="row2"><div><span class="tag mono">${s.id}</span> <b>${L(s.name)}</b></div>${s.score?`<span class="tag acc">${t('score')} <b class="mono">${s.score}</b></span>`:''}</div>
+  <div class="pipe">${stg.map((k,i)=>`<div class="${i<s.stage?'on':''}${i===s.stage-1?' cur':''}">${t(k)}</div>`).join('')}</div>
+  <div class="nxl">${ic('bell',14)}${t('sn'+s.stage)}</div><div style="margin-top:10px"></div><button class="btn ghost sm" data-fb="${s.id}">${open?t('fb_close'):t('fb_open')}</button>${open?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><h4 style="margin-bottom:8px">${t('fb')}</h4>${fb}</div>`:''}</div>`}).join('');
+ const ints=SELL.filter(s=>s.int.length).map(s=>`<div class="card"><b>${L(s.name)}</b><table style="margin-top:8px"><tr><th>${t('buyer')}</th><th>${t('status')}</th></tr>${s.int.map(i=>`<tr><td>${i.cda?`<b>${i.n}</b> <span class="mute sm">· ${L(i.t)} · ${L(i.r)}</span>`:`${L(i.t)} · ${L(i.r)}`}</td><td>${i.cda?`<span class="tag ok">${t('post_cda')}</span>`:`<span class="tag">${t('pre_cda')}</span>`}</td></tr>`).join('')}</table></div>`).join('');
+ const dr=SELL.flatMap(s=>s.dr.map(d=>({...d,a:s}))).map(d=>{const k=d.a.id+d.n;const rv=S.revoked[k];return `<tr><td><b>${d.n}</b><br><span class="mute sm">${d.p}</span></td><td>${L(d.a.name)}</td><td class="mono">${d.d}</td><td>${rv?`<span class="tag">${t('revoked')}</span>`:`<button class="btn danger sm" data-revoke="${k}">${t('revoke')}</button>`}</td></tr>`}).join('');
+ const intAll=SELL.flatMap(x=>x.int),types={};intAll.forEach(i=>{const k=L(i.t);types[k]=(types[k]||0)+1});const tmx=Math.max(1,...Object.values(types));
+ const grants=SELL.flatMap(x=>x.dr.map(d=>x.id+d.n)).filter(k=>!S.revoked[k]).length;
+ return `<div class="dh"><h2>${t('sd_h')}</h2></div>
+ <div class="nba"><div>${ic('users',20)}<span>${t('nb_s').replace('{n}',intAll.length)}</span></div><button class="btn sm" data-scroll="#sd-int">${t('nb_s_go')}</button></div>
+ <div class="kpis">${kpi('file',SELL.length,t('k_a'))}${kpi('list',SELL.filter(x=>x.stage>=4).length,t('k_l'))}${kpi('users',intAll.length,t('k_i'))}${kpi('key',grants,t('k_g'))}</div>
+ <div class="dsec"><h3>${t('sd_a')}</h3><div class="list">${rows}</div></div>
+ <div class="dsec" id="sd-int"><h3>${t('sd_i')}</h3><p class="mute sm" style="margin:-6px 0 10px">${t('sd_is')}</p><div class="card" style="margin-bottom:10px"><h4 style="margin-bottom:10px">${t('int_type')}</h4>${donut(Object.entries(types))}</div><div class="grid g2">${ints||`<div class="card mute">${t('no_int')}</div>`}</div></div>
+ <div class="dsec"><h3>${t('sd_d')}</h3><div class="card" style="overflow-x:auto">${dr?`<table><tr><th>${t('buyer')}</th><th>${t('asset')}</th><th>${t('granted')}</th><th></th></tr>${dr}</table>`:`<span class="mute">${t('none_dr')}</span>`}</div></div>`;
+}
+/* ---------- render ---------- */
+function render(){
+ chrome();const {r,p}=route();
+ const pages={home:home,assets:assets,asset:()=>asset(p),buyer:()=>wizard('buyer'),seller:()=>wizard('seller'),'buyer-dash':buyerDash,'seller-dash':sellerDash};
+ $('#app').innerHTML=(pages[r]||home)();
+}
+function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),2200)}
+function modal(){ $('#overlay').innerHTML=`<div class="modal" data-close><div class="card" role="dialog"><h3>${t('m_login_t')}</h3><p class="mute" style="margin:8px 0 16px">${t('m_login_d')}</p><div class="actions"><button class="btn ghost" data-close>${t('m_cancel')}</button><a class="btn" href="#buyer" data-close>${t('m_reg')}</a></div></div></div>`}
+/* ---------- events ---------- */
+addEventListener('hashchange',()=>{$('#overlay').innerHTML='';render();scrollTo(0,0)});
+document.addEventListener('click',e=>{
+ const g=s=>e.target.closest(s);let x;
+ if(x=g('[data-watch]')){e.stopPropagation();if(S.role==='guest'){S.ret=location.hash;modal();return}if(S.role==='seller'){toast(t('s_role_note'));return}const id=x.dataset.watch;S.watch[id]=!S.watch[id];render();return}
+ if(x=g('[data-rmf]')){const [k,v]=x.dataset.rmf.split('|');if(k==='q')S.q='';else S.flt[k]=S.flt[k].filter(y=>y!==v);render();return}
+ if(x=g('[data-goto]')){const [f,i]=x.dataset.goto.split(':');S.step[f]=+i;render();return}
+ if(x=g('[data-scroll]')){const el=$(x.dataset.scroll);el&&el.scrollIntoView({behavior:'smooth',block:'start'});return}
+ if(x=g('[data-demox]')){S.demoOff=true;render();return}
+ if(x=g('[data-href]')){location.hash=x.dataset.href;return}
+ if(x=g('[data-lang]')){S.lang=x.dataset.lang;render();return}
+ if(x=g('[data-theme-t]')){S.theme=x.dataset.themeT;render();return}
+ if(x=g('[data-close]')){if(e.target===x||x.tagName==='BUTTON'||x.tagName==='A')$('#overlay').innerHTML='';return}
+ if(x=g('[data-setr]')){S.role=x.dataset.setr;render();return}
+ if(x=g('[data-setrole]')){S.role=x.dataset.setrole;return}
+ if(x=g('[data-clearf]')){e.preventDefault();Object.keys(S.flt).forEach(k=>S.flt[k]=[]);S.q='';render();return}
+ if(x=g('[data-req]')){
+  if(S.role==='guest'){S.ret=location.hash;modal();return}
+  if(S.role==='seller'){toast(t('s_role_note'));return}
+  const id=x.dataset.id,ty=x.dataset.req;
+  if(ty==='dr'&&!cdaOk(id)){toast(t('need_cda'));return}
+  if(!rstat(id,ty))S.reqs.push({id,type:ty,status:'pending',d:'2026-09-29'});toast(t('sent'));render();return}
+ if(x=g('[data-next]')){const f=x.dataset.next;if(!validate(f)){render();const b=document.querySelector('.fld.bad');b&&b.scrollIntoView({block:'center',behavior:'smooth'});return}
+  if(S.step[f]===3)S.done[f]=true;else S.step[f]++;render();scrollTo(0,0);return}
+ if(x=g('[data-prev]')){const f=x.dataset.prev;if(S.step[f]>0)S.step[f]--;render();return}
+ if(x=g('[data-reset]')){const f=x.dataset.reset;S.f[f]={};S.step[f]=0;S.done[f]=false;S.err={};render();return}
+ if(x=g('[data-upl]')){const [f,n]=x.dataset.upl.split('.');S.f[f][n]=1;render();return}
+ if(x=g('[data-fb]')){S.fbOpen[x.dataset.fb]=!S.fbOpen[x.dataset.fb];render();return}
+ if(x=g('[data-revoke]')){S.revoked[x.dataset.revoke]=1;render();return}
+ if(x=g('[data-editm]')){S.editM=+x.dataset.editm;render();return}
+ if(x=g('[data-savem]')){const m=S.mands[+x.dataset.savem];m.target=$('#e-target').value||m.target;m.budget=$('#e-budget').value;m.rights=$('#e-rights').value;S.editM=-1;render();return}
+});
+document.addEventListener('change',e=>{
+ const el=e.target;
+ if(el.dataset.role!==undefined){S.role=el.value;render();return}
+ if(el.dataset.sort!==undefined){S.sort=el.value;$('#list').innerHTML=listHtml();return}
+ if(el.dataset.flt){const f=S.flt[el.dataset.flt];const i=f.indexOf(el.value);i<0?f.push(el.value):f.splice(i,1);$('#list').innerHTML=listHtml();return}
+ if(el.dataset.m){const [f,n]=el.dataset.m.split('.');const a=S.f[f][n]=S.f[f][n]||[];const i=a.indexOf(el.value);i<0?a.push(el.value):a.splice(i,1);return}
+ if(el.dataset.f){const [f,n]=el.dataset.f.split('.');S.f[f][n]=el.type==='checkbox'?el.checked:el.value}
+});
+document.addEventListener('input',e=>{
+ const el=e.target;
+ if(el.id==='q'){S.q=el.value;$('#list').innerHTML=listHtml();return}
+ if(el.dataset.f&&el.type!=='checkbox'){const [f,n]=el.dataset.f.split('.');S.f[f][n]=el.value}
+});
+render();
+</script>
+</body>
+</html>
