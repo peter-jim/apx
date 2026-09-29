@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>APX — Pipeline Exchange</title>
+<title>Aegis APX — Pipeline Exchange</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231e5fe0' fill-rule='evenodd' clip-rule='evenodd'%3E%3Cpath d='M12 2.4 20 5.4V11.2C20 16 16.4 19.4 12 20.9 7.6 19.4 4 16 4 11.2V5.4L12 2.4ZM12 8.1 15.3 14H13.4L12 11.2 10.6 14H8.7L12 8.1Z'/%3E%3C/svg%3E">
 <style>
 :root{--bg:#f2f4f7;--surface:#fff;--surface2:#f5f7fa;--line:#e1e5ea;--text:#12161c;--mute:#707a8a;--accent:#1e5fe0;--accent-ink:#fff;--accent-soft:#e6eefc;--up:#0a8f5c;--up-bg:#e3f5ec;--warn:#9a6a00;--warn-bg:#fbf1d8;--ok:#0a8f5c;--ok-bg:#e3f5ec;--err:#d0342c;--lock:#f5f7fa;--r:4px}
 [data-theme=dark]{--bg:#0b0e11;--surface:#161a1e;--surface2:#1e2329;--line:#2b3139;--text:#eaecef;--mute:#848e9c;--accent:#4c8dff;--accent-ink:#0b0e11;--accent-soft:#16233d;--up:#2ebd85;--up-bg:#12332a;--warn:#f0b90b;--warn-bg:#33290a;--ok:#2ebd85;--ok-bg:#12332a;--err:#f6465d;--lock:#12161a}
@@ -17,9 +18,15 @@ h1{font-size:34px;letter-spacing:-.02em}h2{font-size:20px}h3{font-size:14px}h4{f
 p{margin:0}
 .wrap{max-width:1240px;margin:0 auto;padding:0 16px}
 header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
-.bar{display:flex;align-items:center;gap:20px;height:48px}
-.logo{font-weight:800;letter-spacing:.12em;color:var(--text);font-size:16px;display:flex;align-items:center;gap:8px}
-.logo i{display:inline-block;width:16px;height:16px;background:var(--accent);clip-path:polygon(0 100%,0 55%,30% 55%,30% 30%,60% 30%,60% 0,100% 0,100% 100%)}
+.bar{display:flex;align-items:center;gap:18px;height:48px}
+.logo{font-weight:700;color:var(--text);font-size:15px;display:flex;align-items:center;gap:8px;text-decoration:none;letter-spacing:-.01em}
+.logo:hover{color:var(--text)}
+.logo .aegis-mark{color:var(--accent);transition:transform .18s ease;display:inline-block;vertical-align:middle;flex-shrink:0}
+.logo:hover .aegis-mark{transform:scale(1.08)}
+.logo-text{display:inline-flex;align-items:baseline;gap:5px}
+.logo-brand{font-weight:700;letter-spacing:-.02em;color:var(--text);font-size:16px}
+.logo-tag{font-weight:800;letter-spacing:.08em;color:var(--accent);font-size:13px;background:var(--accent-soft);padding:1px 5px;border-radius:3px}
+.logo-sub{font-size:11px;font-weight:500;color:var(--mute);letter-spacing:0;margin-left:2px}
 nav.links{display:flex;gap:0;flex:1;overflow-x:auto;scrollbar-width:none;height:100%}
 nav.links a{color:var(--mute);padding:0 14px;display:flex;align-items:center;white-space:nowrap;font-weight:500;border-bottom:2px solid transparent}
 nav.links a.on,nav.links a:hover{color:var(--text)}
@@ -160,7 +167,8 @@ th{color:var(--mute);font-weight:500;font-size:11px;text-transform:uppercase;let
  .mrow>div[data-l]:before{content:attr(data-l);display:block;color:var(--mute);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
  .kv{grid-template-columns:100px 1fr}
 }
-@media(max-width:520px){.g3,.g4,.chain{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}.pipe div{font-size:10px}.logo span{display:none}.tools{margin-left:auto}}
+@media(max-width:768px){.logo-sub{display:none}}
+@media(max-width:520px){.g3,.g4,.chain{grid-template-columns:1fr}.toolbar{flex-wrap:wrap}.pipe div{font-size:10px}.logo-sub{display:none}.tools{margin-left:auto}}
 
 .ic{flex:none;vertical-align:middle}
 :root{--tc-amylin:#2a78d6;--tc-multi:#1baf7a;--tc-glp1:#eb6834;--tc-mstn:#4a3aa7}
@@ -501,11 +509,12 @@ function chrome(){
  const dash=S.role==='seller'?'#seller-dash':'#buyer-dash';
  const on=x=>r===x?' class="on"':'';
  const nav=`<a href="#home"${on('home')}>${t('nav_home')}</a><a href="#assets"${on('assets')}>${t('nav_assets')}</a><a href="#buyer"${on('buyer')}>${t('nav_buyer')}</a><a href="#seller"${on('seller')}>${t('nav_seller')}</a>`+(S.role!=='guest'?`<a href="${dash}"${(r==='buyer-dash'||r==='seller-dash')?' class="on"':''}>${t('nav_dash')}</a>`:'');
- $('#bar').innerHTML=`<a class="logo" href="#home"><i></i>APX</a><nav class="links">${nav}</nav><div class="tools">
+ function aegisLogo(sz=21,cls=''){return `<svg class="aegis-mark ${cls}" width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2.4 20 5.4V11.2C20 16 16.4 19.4 12 20.9 7.6 19.4 4 16 4 11.2V5.4L12 2.4ZM12 8.1 15.3 14H13.4L12 11.2 10.6 14H8.7L12 8.1Z"/></svg>`}
+ $('#bar').innerHTML=`<a class="logo" href="#home" title="Aegis APX — Pipeline Exchange">${aegisLogo(22)}<span class="logo-text"><span class="logo-brand">Aegis</span><span class="logo-tag">APX</span></span><span class="logo-sub">Pipeline Exchange</span></a><nav class="links">${nav}</nav><div class="tools">
  <span class="rolel">${t('role')}</span><select data-role aria-label="${t('role')}">${['guest','buyer','seller'].map(x=>`<option value="${x}"${S.role===x?' selected':''}>${t('r_'+x)}</option>`).join('')}</select>
  <div class="seg"><button data-lang="en" class="${S.lang==='en'?'on':''}">EN</button><button data-lang="zh" class="${S.lang==='zh'?'on':''}">中</button></div>
  <div class="seg"><button data-theme-t="light" class="${S.theme==='light'?'on':''}" aria-label="light">☀</button><button data-theme-t="dark" class="${S.theme==='dark'?'on':''}" aria-label="dark">☾</button></div></div>`;
- $('#foot').innerHTML=`<div class="cols"><div><b style="color:var(--text)">APX</b> · ${t('demo')}<br>${t('f_contact')}: partners@apx.example · +1 212 000 0000</div><div style="max-width:420px">${t('f_priv')}</div><div><b style="color:var(--text)">${t('f_ind')}</b></div></div>`;
+ $('#foot').innerHTML=`<div class="cols"><div><div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">${aegisLogo(18)}<b style="color:var(--text)">Aegis APX</b> · <span class="mute">${t('demo')}</span></div>${t('f_contact')}: partners@apx.example · +1 212 000 0000</div><div style="max-width:420px">${t('f_priv')}</div><div><b style="color:var(--text)">${t('f_ind')}</b></div></div>`;
  const tk=[[t('tk1'),'1,240'],[t('tk2'),'186'],[t('tk3'),'312'],[t('tk4'),'94','up'],...A.map(a=>[a.id+' '+t('tg_'+a.tg)+' '+t('st_'+a.stage),String(a.score),'up'])].map(([l,v,c])=>`<span>${l}<b class="${c||''}">${v}</b></span>`).join('');
  $('#demo').innerHTML=S.demoOff?'':`<div class="wrap"><span>${t('demo_b')}</span><button data-demox>${t('demo_x')}</button></div>`;
  $('#ticker').innerHTML=`<div class="tk">${tk}${tk}</div>`;

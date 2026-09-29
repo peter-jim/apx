@@ -1,6 +1,6 @@
-# APX — Pipeline Exchange
+# Aegis APX — Pipeline Exchange
 
-APX 是一个面向生物医药资产管线交易与撮合的轻量级单页应用（SPA）。
+Aegis APX 是基于 Aegis 生物世界模型（Bio World Model）与 AI 筛选评估的早期药物资产管线交易与机构撮合平台。
 
 ## 特性
 
